@@ -1,0 +1,6 @@
+{
+  "name": "VÉQALUNE CIVIC",
+  "description": "AI-powered community intelligence platform transforming citizen reports into structured, prioritized, and actionable civic decision-support intelligence.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
