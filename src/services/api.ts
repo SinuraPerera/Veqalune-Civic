@@ -6,7 +6,14 @@ import {
   PredictiveScenario,
   Report,
   ReportStatus,
+  SystemHealth,
 } from '../types';
+
+export async function fetchSystemHealth(): Promise<SystemHealth> {
+  const res = await fetch('/api/health');
+  if (!res.ok) throw new Error('Failed to fetch system health');
+  return await res.json();
+}
 
 export async function fetchReports(filters?: {
   category?: string;
@@ -14,21 +21,16 @@ export async function fetchReports(filters?: {
   status?: string;
   search?: string;
 }): Promise<Report[]> {
-  try {
-    const params = new URLSearchParams();
-    if (filters?.category) params.append('category', filters.category);
-    if (filters?.severity) params.append('severity', filters.severity);
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.search) params.append('search', filters.search);
+  const params = new URLSearchParams();
+  if (filters?.category) params.append('category', filters.category);
+  if (filters?.severity) params.append('severity', filters.severity);
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.search) params.append('search', filters.search);
 
-    const res = await fetch(`/api/reports?${params.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch reports');
-    const data = await res.json();
-    return data.reports || [];
-  } catch (error) {
-    console.error('Error fetching reports from server:', error);
-    return [];
-  }
+  const res = await fetch(`/api/reports?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch reports');
+  const data = await res.json();
+  return data.reports || [];
 }
 
 export async function fetchHotspots(): Promise<HotspotCluster[]> {
@@ -79,7 +81,17 @@ export async function submitReportForAnalysis(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Analysis failed' }));
-    throw new Error(err.error || 'Failed to analyze report with AI');
+    const errorMessage = err.error || 'Failed to analyze report with AI';
+
+    // Check for rate limit or quota errors
+    if (errorMessage.toLowerCase().includes('resource_exhausted') ||
+        errorMessage.toLowerCase().includes('quota') ||
+        errorMessage.toLowerCase().includes('rate limit') ||
+        res.status === 429) {
+      throw new Error('AI_RATE_LIMIT');
+    }
+
+    throw new Error(errorMessage);
   }
 
   return await res.json();

@@ -104,7 +104,7 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
 
   if (variant === 'compact') {
     return (
-      <div className={`inline-flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800 ${className}`}>
+      <div className={`inline-flex items-center p-0.5 rounded-lg bg-white/80 border border-slate-200 ${className}`}>
         {SUPPORTED_LANGUAGES.map((lang) => {
           const isActive = language === lang.code;
           return (
@@ -114,8 +114,8 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
               title={`${lang.label} (${lang.nativeName})`}
               className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
                 isActive
-                  ? 'bg-emerald-500 text-zinc-950 shadow-sm font-bold'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                  ? 'bg-emerald-500 text-white shadow-sm font-bold'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {lang.badge}
@@ -128,7 +128,7 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
 
   if (variant === 'pills') {
     return (
-      <div className={`inline-flex items-center p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 shadow-inner ${className}`}>
+      <div className={`inline-flex items-center p-1 rounded-xl bg-white/80 border border-slate-200 shadow-inner ${className}`}>
         {SUPPORTED_LANGUAGES.map((lang) => {
           const isActive = language === lang.code;
           return (
@@ -137,8 +137,8 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
               onClick={() => setLanguage(lang.code)}
               className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                 isActive
-                  ? 'bg-emerald-500 text-zinc-950 font-bold shadow-md shadow-emerald-950/40'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80'
+                  ? 'bg-emerald-500 text-white font-bold shadow-md shadow-emerald-200/50'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-white'
               }`}
             >
               <span>{lang.nativeName}</span>
@@ -152,18 +152,18 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
   if (variant === 'footer') {
     return (
       <div className={`flex items-center gap-1 ${className}`}>
-        <Globe className="w-3.5 h-3.5 text-zinc-400 mr-1" />
+        <Globe className="w-3.5 h-3.5 text-slate-500 mr-1" />
         {SUPPORTED_LANGUAGES.map((lang, idx) => {
           const isActive = language === lang.code;
           return (
             <React.Fragment key={lang.code}>
-              {idx > 0 && <span className="text-zinc-600 px-0.5">•</span>}
+              {idx > 0 && <span className="text-slate-400 px-0.5">•</span>}
               <button
                 onClick={() => setLanguage(lang.code)}
                 className={`text-xs px-1.5 py-0.5 rounded transition-colors ${
                   isActive
-                    ? 'text-emerald-400 font-bold bg-emerald-950/50 border border-emerald-800/50'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'text-emerald-600 font-bold bg-emerald-50 border border-emerald-200'
+                    : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 {lang.nativeName}
@@ -180,7 +180,7 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
     <div className={`relative inline-block text-left ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-2 transition-all cursor-pointer"
+        className="px-2.5 py-1.5 rounded-xl bg-white/80 border border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-medium flex items-center gap-2 transition-all cursor-pointer"
       >
         <Globe className="w-3.5 h-3.5 text-emerald-400" />
         <span className="font-semibold">{SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeName}</span>
@@ -189,7 +189,7 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-1.5 w-36 rounded-xl bg-zinc-900 border border-zinc-700 shadow-xl z-50 py-1">
+          <div className="absolute right-0 mt-1.5 w-36 rounded-xl bg-white/80 border border-slate-200 shadow-xl z-50 py-1">
             {SUPPORTED_LANGUAGES.map((lang) => {
               const isActive = language === lang.code;
               return (
@@ -201,8 +201,8 @@ export const LanguageSelector: React.FC<SelectorProps> = ({ variant = 'pills', c
                   }}
                   className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
                     isActive
-                      ? 'bg-emerald-950/60 text-emerald-400 font-bold'
-                      : 'text-zinc-300 hover:bg-zinc-800'
+                      ? 'bg-emerald-50 text-emerald-400 font-bold'
+                      : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   <span>{lang.nativeName}</span>

@@ -72,31 +72,31 @@ export function getSeverityBadgeColor(severity: SeverityLevel): {
   switch (severity) {
     case 'CRITICAL':
       return {
-        bg: 'bg-rose-950/60',
-        text: 'text-rose-400',
-        border: 'border-rose-800/80',
+        bg: 'bg-rose-50',
+        text: 'text-rose-600',
+        border: 'border-rose-200',
         dot: 'bg-rose-500',
       };
     case 'HIGH':
       return {
-        bg: 'bg-amber-950/60',
-        text: 'text-amber-400',
-        border: 'border-amber-800/80',
+        bg: 'bg-amber-50',
+        text: 'text-amber-600',
+        border: 'border-amber-200',
         dot: 'bg-amber-500',
       };
     case 'MODERATE':
       return {
-        bg: 'bg-yellow-950/40',
-        text: 'text-yellow-400',
-        border: 'border-yellow-800/60',
+        bg: 'bg-yellow-50',
+        text: 'text-yellow-700',
+        border: 'border-yellow-200',
         dot: 'bg-yellow-500',
       };
     case 'LOW':
     default:
       return {
-        bg: 'bg-emerald-950/40',
-        text: 'text-emerald-400',
-        border: 'border-emerald-800/60',
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-600',
+        border: 'border-emerald-200',
         dot: 'bg-emerald-500',
       };
   }
@@ -110,28 +110,28 @@ export function getStatusBadgeColor(status: string): {
   switch (status) {
     case 'Resolved':
       return {
-        bg: 'bg-emerald-950/50',
-        text: 'text-emerald-400',
-        border: 'border-emerald-700/60',
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-600',
+        border: 'border-emerald-200',
       };
     case 'Action Recommended':
       return {
-        bg: 'bg-sky-950/50',
-        text: 'text-sky-300',
-        border: 'border-sky-700/60',
+        bg: 'bg-sky-50',
+        text: 'text-sky-600',
+        border: 'border-sky-200',
       };
     case 'Under Review':
       return {
-        bg: 'bg-amber-950/50',
-        text: 'text-amber-300',
-        border: 'border-amber-700/60',
+        bg: 'bg-amber-50',
+        text: 'text-amber-600',
+        border: 'border-amber-200',
       };
     case 'New':
     default:
       return {
-        bg: 'bg-zinc-900',
-        text: 'text-zinc-300',
-        border: 'border-zinc-700',
+        bg: 'bg-slate-50',
+        text: 'text-slate-600',
+        border: 'border-slate-200',
       };
   }
 }

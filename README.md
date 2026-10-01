@@ -356,6 +356,25 @@ index.html
 
 Or use **VS Code Live Server**.
 
+### Optional Python AI integration
+
+The Node API can delegate report analysis to the Python worker before using its built-in Gemini or deterministic fallbacks.
+
+Start the worker in a second terminal:
+
+```bash
+py -3 python_service/ai_service.py
+```
+
+Set these values in `.env`:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+PYTHON_AI_URL=http://127.0.0.1:8001
+```
+
+The worker exposes `GET /health` and `POST /analyze`. It uses Gemini through REST when the key is configured, and a deterministic local analyzer otherwise. If the worker is unavailable, the Node server continues with its existing AI and demo fallback pipeline.
+
 ---
 
 ## 🤝 Team

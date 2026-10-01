@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   UploadCloud,
   MapPin,
@@ -11,10 +11,13 @@ import {
   Camera,
   Layers,
   ArrowRight,
+  CheckCircle2
 } from 'lucide-react';
-import { ReportCategory, AnalysisRequestPayload } from '../types';
+import { ReportCategory, AnalysisRequestPayload, AnalysisResponseData } from '../types';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { useLanguage } from '../context/LanguageContext';
+import { submitReportForAnalysis, saveAnalyzedReport } from '../services/api';
+import { useToast } from '../components/Toast';
 
 interface Props {
   onStartAnalysis: (payload: AnalysisRequestPayload) => void;
@@ -22,6 +25,7 @@ interface Props {
 
 export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
   const { t, formatCategory } = useLanguage();
+  const { showToast } = useToast();
 
   const CATEGORIES: { id: ReportCategory; label: string; desc: string }[] = [
     { id: 'Waste', label: formatCategory('Waste'), desc: 'Overflowing dumpsters, illicit debris' },
@@ -135,6 +139,7 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
         setLocationLabel(`Current Geolocation (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`);
         setGeoLocating(false);
         setGeoSuccess(true);
+        showToast('success', 'Location found', 'Using your current GPS coordinates');
       },
       (err) => {
         console.warn('Geolocation failed or denied:', err);
@@ -143,6 +148,7 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
         setLatitude(6.9271);
         setLongitude(79.8612);
         setLocationLabel('Colombo Pilot Community (Central Sector)');
+        showToast('warning', 'Location unavailable', 'Using default pilot community coordinates');
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -157,6 +163,7 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
     setLongitude(preset.lng);
     setImagePreview(preset.imageUrl);
     setImageBase64(null); // URL is used
+    showToast('success', 'Preset applied', `${preset.title} loaded successfully`);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -179,41 +186,43 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       {/* Header Banner */}
-      <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/80 text-xs font-mono text-emerald-400">
-          <BrainCircuit className="w-3.5 h-3.5" />
+      <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-xs font-mono text-emerald-600 border border-emerald-200">
+          <BrainCircuit className="w-4 h-4" />
           {t.nav.ai}
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
           {t.reportPage.heading}
         </h1>
-        <p className="text-xs sm:text-sm text-zinc-400">
+        <p className="text-sm text-slate-500">
           {t.reportPage.subheading}
         </p>
       </div>
 
       {/* Quick Scenario Preset Selector */}
-      <div className="mb-6 p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-emerald-400" />
+      <div className="mb-6 sm:mb-8 p-4 sm:p-6 rounded-2xl sm:rounded-3xl glass-card space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm">
+          <span className="font-semibold text-slate-700 flex items-center gap-1.5 sm:gap-2">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
+            </div>
             {t.reportPage.presetsTitle}
           </span>
-          <span className="text-zinc-400 text-[11px]">{t.brand.syntheticDataNotice}</span>
+          <span className="text-slate-500 text-[10px] sm:text-xs">{t.brand.syntheticDataNotice}</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           {PRESET_SCENARIOS.map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => applyPreset(preset)}
-              className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800/90 hover:border-emerald-500/50 text-left transition-all group cursor-pointer"
+              className="p-3 sm:p-4 rounded-xl sm:rounded-2xl glass border border-slate-200/60 hover:border-emerald-300 text-left transition-all group cursor-pointer hover:shadow-md hover:-translate-y-0.5"
             >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200 group-hover:text-emerald-400">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold text-slate-800 group-hover:text-emerald-500 transition-colors">
                 <CategoryIcon category={preset.category} size={14} />
                 <span className="truncate">{preset.title}</span>
               </div>
-              <p className="text-[10px] text-zinc-400 truncate mt-1">
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate mt-1.5 sm:mt-2">
                 {preset.locationLabel}
               </p>
             </button>
@@ -222,31 +231,33 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
       </div>
 
       {errorMessage && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-950/40 border border-amber-800/80 text-amber-300 text-xs flex items-center justify-between gap-3">
+        <div className="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center justify-between gap-3 backdrop-blur-sm">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
             <span>{errorMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            className="text-amber-400 hover:text-amber-200 cursor-pointer"
+            className="text-rose-500 hover:text-rose-700 cursor-pointer transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       )}
 
       {/* Main Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* 1. Visual Evidence Upload */}
-        <div className="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
+        <div className="p-8 rounded-3xl glass-card space-y-5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-emerald-400" />
+            <label className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200">
+                <Camera className="w-4 h-4 text-emerald-500" />
+              </div>
               {t.reportPage.step1Title}
             </label>
-            <span className="text-[11px] text-zinc-400">{t.reportPage.step1Desc}</span>
+            <span className="text-xs text-slate-500">{t.reportPage.step1Desc}</span>
           </div>
 
           <input
@@ -260,18 +271,18 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
           />
 
           {imagePreview ? (
-            <div className="relative rounded-xl overflow-hidden border border-zinc-700 bg-zinc-950 group">
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200/70 bg-white group">
               <img
                 src={imagePreview}
                 alt="Preview"
                 referrerPolicy="no-referrer"
-                className="w-full h-64 object-cover"
+                className="w-full h-72 object-cover"
               />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3.5 py-1.5 rounded-lg bg-zinc-900 text-zinc-100 text-xs font-semibold border border-zinc-700 shadow-md hover:bg-zinc-800 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-white/90 text-slate-800 text-sm font-semibold border border-slate-200 shadow-sm hover:bg-white cursor-pointer transition-all"
                 >
                   {t.reportPage.orUseCamera}
                 </button>
@@ -281,12 +292,12 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
                     setImagePreview(null);
                     setImageBase64(null);
                   }}
-                  className="p-1.5 rounded-lg bg-rose-950/80 text-rose-300 border border-rose-800/80 hover:bg-rose-900 cursor-pointer"
+                  className="p-2.5 rounded-xl bg-white/90 text-rose-500 border border-slate-200 hover:text-rose-600 shadow-sm cursor-pointer transition-all"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[11px] font-mono text-zinc-300">
+              <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-sm text-xs font-mono text-emerald-600 border border-emerald-100 shadow-sm">
                 Visual Evidence Attached
               </div>
             </div>
@@ -295,15 +306,15 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-zinc-700/80 hover:border-emerald-500/60 rounded-xl p-8 text-center cursor-pointer transition-all bg-zinc-950/40 hover:bg-zinc-950/70"
+              className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-12 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50 group"
             >
-              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-3 text-zinc-400 group-hover:text-emerald-400">
-                <UploadCloud className="w-6 h-6 text-emerald-400" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-sm">
+                <UploadCloud className="w-8 h-8 text-emerald-500" />
               </div>
-              <p className="text-sm font-semibold text-zinc-200">
+              <p className="text-base font-semibold text-slate-800">
                 {t.reportPage.uploadBoxTitle}
               </p>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-sm text-slate-500 mt-2">
                 {t.reportPage.uploadBoxSubtitle}
               </p>
             </div>
@@ -311,12 +322,14 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
         </div>
 
         {/* 2. Category Selector */}
-        <div className="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
-          <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-400" />
+        <div className="p-8 rounded-3xl glass-card space-y-5">
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200">
+              <Layers className="w-4 h-4 text-emerald-500" />
+            </div>
             {t.reportPage.step2Title}
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {CATEGORIES.map((cat) => {
               const isSelected = selectedCategory === cat.id;
               return (
@@ -324,22 +337,22 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
                     isSelected
-                      ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 shadow-md shadow-emerald-950/30'
-                      : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                      ? 'bg-white border-emerald-400 text-emerald-600 shadow-sm'
+                      : 'bg-slate-50/50 border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <CategoryIcon
                       category={cat.id}
-                      size={18}
-                      className={isSelected ? 'text-emerald-400' : 'text-zinc-400'}
+                      size={20}
+                      className={isSelected ? 'text-emerald-500' : 'text-slate-400'}
                     />
-                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                    {isSelected && <Check className="w-4 h-4 text-emerald-500" />}
                   </div>
-                  <div className="font-bold text-xs text-zinc-100">{cat.label}</div>
-                  <div className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">
+                  <div className="font-bold text-sm text-slate-800">{cat.label}</div>
+                  <div className="text-xs text-slate-500 line-clamp-1 mt-1">
                     {cat.desc}
                   </div>
                 </button>
@@ -349,26 +362,28 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
         </div>
 
         {/* 3. Location Information */}
-        <div className="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
+        <div className="p-8 rounded-3xl glass-card space-y-5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-400" />
+            <label className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200">
+                <MapPin className="w-4 h-4 text-emerald-500" />
+              </div>
               {t.reportPage.locationLabel}
             </label>
             <button
               type="button"
               onClick={handleFetchGeolocation}
               disabled={geoLocating}
-              className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-zinc-700 transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-emerald-600 border border-slate-200 transition-all cursor-pointer shadow-sm"
             >
-              <Compass className={`w-3.5 h-3.5 ${geoLocating ? 'animate-spin' : ''}`} />
+              <Compass className={`w-4 h-4 ${geoLocating ? 'animate-spin' : ''}`} />
               {geoLocating ? 'Acquiring GPS...' : geoSuccess ? t.reportPage.gpsActive : t.reportPage.detectGps}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+              <label className="block text-xs font-medium text-slate-500 mb-2">
                 {t.reportPage.locationPlaceholder}
               </label>
               <input
@@ -377,33 +392,33 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
                 onChange={(e) => setLocationLabel(e.target.value)}
                 placeholder="e.g. Sector 4 Green Corridor, Canal Walkway"
                 required
-                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 focus:border-emerald-500 focus:outline-none text-xs text-zinc-100 placeholder-zinc-600"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-emerald-400 focus:outline-none text-sm text-slate-800 placeholder-slate-400 transition-all"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+              <label className="block text-xs font-medium text-slate-500 mb-2">
                 Geotag Coordinates (WGS84)
               </label>
-              <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-emerald-400 flex items-center justify-between">
+              <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-mono text-emerald-600 flex items-center justify-between">
                 <span>{latitude.toFixed(4)}, {longitude.toFixed(4)}</span>
-                <span className="text-[10px] text-zinc-400">PostGIS</span>
+                <span className="text-xs text-slate-400">PostGIS</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* 4. Description (Optional) */}
-        <div className="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center justify-between">
+        <div className="p-8 rounded-3xl glass-card space-y-4">
+          <label className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center justify-between">
             <span>{t.reportPage.issueDescription}</span>
-            <span className="text-[11px] font-normal text-zinc-400">(Optional details)</span>
+            <span className="text-xs font-normal text-slate-500">(Optional details)</span>
           </label>
           <textarea
-            rows={3}
+            rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t.reportPage.issueDescriptionPlaceholder}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 focus:border-emerald-500 focus:outline-none text-xs text-zinc-100 placeholder-zinc-600 leading-relaxed"
+            className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:border-emerald-400 focus:outline-none text-sm text-slate-800 placeholder-slate-400 leading-relaxed transition-all resize-none"
           />
         </div>
 
@@ -411,13 +426,13 @@ export const ReportPage: React.FC<Props> = ({ onStartAnalysis }) => {
         <div className="pt-2">
           <button
             type="submit"
-            className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-base shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer hover:shadow-emerald-500/40"
           >
-            <Sparkles className="w-4 h-4 text-zinc-950" />
+            <Sparkles className="w-5 h-5 text-white" />
             <span>{t.reportPage.analyzeButton}</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-5 h-5" />
           </button>
-          <p className="text-center text-[11px] text-zinc-400 mt-2.5">
+          <p className="text-center text-xs text-slate-500 mt-3">
             {t.reportPage.fillRequired}
           </p>
         </div>

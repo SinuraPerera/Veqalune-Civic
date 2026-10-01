@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { createServer as createHttpServer } from 'node:http';
 import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
@@ -37,9 +38,36 @@ function getGeminiClient(): GoogleGenAI | null {
   }
 }
 
+async function analyzeWithPython(payload: Record<string, unknown>): Promise<Record<string, any> | null> {
+  const baseUrl = process.env.PYTHON_AI_URL?.replace(/\/$/, '');
+  if (!baseUrl) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(`${baseUrl}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+
+    const result = (await response.json()) as Record<string, any>;
+    if (!result.category || !result.severity || !result.aiExplanation) return null;
+    return result;
+  } catch (error) {
+    console.warn('Python AI worker unavailable, continuing with Node AI fallback:', error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const httpServer = createHttpServer(app);
+  const PORT = Number(process.env.PORT || 3001);
 
   // Support JSON bodies with sufficient size for image uploads
   app.use(express.json({ limit: '20mb' }));
@@ -47,11 +75,18 @@ async function startServer() {
 
   // API Health Endpoint
   app.get('/api/health', (req: Request, res: Response) => {
+    const geminiConfigured = Boolean(
+      process.env.GEMINI_API_KEY &&
+        process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' &&
+        process.env.GEMINI_API_KEY.trim()
+    );
     res.json({
       status: 'ok',
       service: 'VÉQALUNE CIVIC Intelligence Platform',
       version: '1.0.0-MVP',
-      aiConfigured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY'),
+      aiConfigured: geminiConfigured || Boolean(process.env.PYTHON_AI_URL),
+      geminiConfigured,
+      pythonAiConfigured: Boolean(process.env.PYTHON_AI_URL),
       reportsCount: reportsStore.length,
     });
   });
@@ -194,8 +229,6 @@ async function startServer() {
   app.post('/api/analyze', async (req: Request, res: Response) => {
     const { imageBase64, mimeType, description = '', category = 'Waste', locationLabel = '', latitude, longitude } = req.body;
 
-    const ai = getGeminiClient();
-
     // Check proximity to existing hotspots using Haversine calculation
     let matchedHotspot: HotspotCluster | undefined;
     if (latitude && longitude) {
@@ -206,6 +239,59 @@ async function startServer() {
         return distance <= (hs.radiusMeters || 450);
       });
     }
+
+    const pythonResult = await analyzeWithPython(req.body as Record<string, unknown>);
+    if (pythonResult) {
+      const validSeverity: SeverityLevel = ['LOW', 'MODERATE', 'HIGH', 'CRITICAL'].includes(pythonResult.severity)
+        ? pythonResult.severity
+        : 'MODERATE';
+      const validEnvRisk: RiskLevel = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(pythonResult.environmentalRisk)
+        ? pythonResult.environmentalRisk
+        : 'MEDIUM';
+      const validPubRisk: RiskLevel = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(pythonResult.publicRisk)
+        ? pythonResult.publicRisk
+        : 'MEDIUM';
+      const validCategory: ReportCategory = [
+        'Waste',
+        'Road Damage',
+        'Water',
+        'Drainage',
+        'Energy',
+        'Public Safety',
+        'Other',
+      ].includes(pythonResult.category)
+        ? pythonResult.category
+        : (category as ReportCategory);
+      const scoring = calculatePriorityScore({
+        severity: validSeverity,
+        environmentalRisk: validEnvRisk,
+        publicRisk: validPubRisk,
+        category: validCategory,
+        isHotspot: Boolean(matchedHotspot),
+        locationSensitivity: 'High',
+      });
+
+      return res.json({
+        category: validCategory,
+        aiConfidence: Number(pythonResult.aiConfidence) || 88,
+        severity: validSeverity,
+        environmentalRisk: validEnvRisk,
+        publicRisk: validPubRisk,
+        priorityScore: scoring.totalScore,
+        scoringBreakdown: scoring,
+        aiExplanation: pythonResult.aiExplanation,
+        recommendedAction: pythonResult.recommendedAction || 'Assign a field inspection.',
+        hazardTags: Array.isArray(pythonResult.hazardTags) ? pythonResult.hazardTags : ['Community Report', validCategory],
+        detectedObjects: Array.isArray(pythonResult.detectedObjects) ? pythonResult.detectedObjects : ['reported hazard'],
+        estimatedResolutionTime: pythonResult.estimatedResolutionTime || '24 Hours',
+        decisionSupportNote:
+          'VÉQALUNE Decision-Support Framework: This score and classification are advisory AI outputs to prioritize municipal field inspection.',
+        potentialHotspotMatch: matchedHotspot ? matchedHotspot.name : undefined,
+        modelUsed: pythonResult.source || 'python-ai-worker',
+      });
+    }
+
+    const ai = getGeminiClient();
 
     if (ai) {
       try {
@@ -633,7 +719,10 @@ Keep tone objective, authoritative, and actionable. Return in structured JSON.`,
   // Vite middleware for development or static serving for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: { server: httpServer },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -645,8 +734,8 @@ Keep tone objective, authoritative, and actionable. Return in structured JSON.`,
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`VÉQALUNE CIVIC Intelligence Platform running at http://0.0.0.0:${PORT}`);
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`VÉQALUNE CIVIC Intelligence Platform running at http://localhost:${PORT}`);
   });
 }
 

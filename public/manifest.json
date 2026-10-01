@@ -1,0 +1,20 @@
+{
+  "name": "Veqalune Civic",
+  "short_name": "Civic",
+  "description": "AI-powered civic issue reporting and management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png?v=2",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "screenshots": []
+}

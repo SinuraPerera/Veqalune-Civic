@@ -1,60 +1,322 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    color-scheme: light;
+
+    /* === LIQUID GLASS LIGHT — Design Tokens === */
+
+    /* Brand Accents (unchanged — vivid on light) */
+    --color-primary-500: #10b981;
+    --color-primary-600: #059669;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+
+    /* Light Neutral Palette */
+    --color-neutral-950: #f8fafc;   /* page background (was near-black) */
+    --color-neutral-900: #f1f5f9;
+    --color-neutral-800: #e2e8f0;
+    --color-neutral-700: #cbd5e1;
+    --color-neutral-600: #94a3b8;
+    --color-neutral-500: #64748b;
+    --color-neutral-400: #475569;
+    --color-neutral-300: #334155;
+    --color-neutral-200: #1e293b;
+    --color-neutral-100: #0f172a;
+
+    /* Semantic Colors */
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --color-info: #3b82f6;
+
+    /* Typography */
+    --font-sans: 'Plus Jakarta Sans', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-base: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
+    --radius-3xl: 1.5rem;
+
+    /* Liquid Glass Shadows */
+    --shadow-glow: 0 0 20px rgb(16 185 129 / 0.2);
+    --shadow-glass: 0 8px 32px 0 rgba(15, 23, 42, 0.08), 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+    --shadow-glass-hover: 0 16px 48px 0 rgba(15, 23, 42, 0.12), 0 4px 12px 0 rgba(15, 23, 42, 0.08);
+    --shadow-card: 0 4px 24px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
+
+    /* Glass surface properties */
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.7);
+    --glass-bg-hover: rgba(255, 255, 255, 0.82);
+    --glass-bg-deep: rgba(248, 250, 252, 0.75);
+  }
+
+  html {
+    background: #f8fafc;
+    scroll-behavior: smooth;
+  }
+
   body {
-    font-family: 'Plus Jakarta Sans', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: var(--font-sans);
+    background:
+      radial-gradient(ellipse at 10% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 5%, rgba(14, 165, 233, 0.06) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: #0f172a;
   }
 
   code, kbd, samp, pre {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
   }
 }
 
-/* Custom map and UI micro-animations */
+/* =============================================
+   LIQUID GLASS UTILITY CLASSES
+   Core building blocks for the glass aesthetic
+   ============================================= */
+
+/* Base glass card — frosted white surface */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--shadow-glass-hover);
+}
+
+/* Elevated glass card with specular highlight */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    var(--shadow-glass),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.80);
+  box-shadow:
+    var(--shadow-glass-hover),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+}
+
+/* Navigation bar glass */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow: 0 1px 20px rgba(15, 23, 42, 0.06), inset 0 -1px 0 rgba(226, 232, 240, 0.5);
+}
+
+/* Modal backdrop + panel */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 24px 80px rgba(15, 23, 42, 0.16),
+    0 8px 32px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Pill / chip glass */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* Subtle inset well */
+.glass-well {
+  background: rgba(241, 245, 249, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(203, 213, 225, 0.5);
+  box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+/* =============================================
+   TEXT UTILITIES FOR LIGHT THEME
+   ============================================= */
+
+.text-primary { color: #0f172a; }
+.text-secondary { color: #475569; }
+.text-muted { color: #64748b; }
+.text-subtle { color: #94a3b8; }
+
+/* =============================================
+   SELECTION
+   ============================================= */
+
+::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #064e3b;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+
 @keyframes radar-pulse {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.4);
-    opacity: 0.15;
-  }
-  100% {
-    transform: scale(1.8);
-    opacity: 0;
-  }
+  0%   { transform: scale(0.95); opacity: 0.6; }
+  50%  { transform: scale(1.4);  opacity: 0.08; }
+  100% { transform: scale(1.8);  opacity: 0; }
 }
 
 .radar-ping {
   animation: radar-pulse 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@keyframes gradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(24, 24, 27, 0.6);
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(63, 63, 70, 0.6);
-  border-radius: 9999px;
+@keyframes glass-shimmer {
+  0%   { opacity: 0; transform: translateX(-100%) rotate(30deg); }
+  50%  { opacity: 0.6; }
+  100% { opacity: 0; transform: translateX(200%) rotate(30deg); }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(82, 82, 91, 0.8);
+.glass-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%);
+  animation: glass-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
 }
 
-/* Leaflet dark tile custom overlay */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+.float-gentle {
+  animation: float-gentle 4s ease-in-out infinite;
+}
+
+/* =============================================
+   HERO SIGNAL SCENE (light mode adaptation)
+   ============================================= */
+
+.hero-signal-shell {
+  isolation: isolate;
+}
+
+.civic-signal-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.45;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 72%);
+}
+
+.hero-signal-vignette {
+  background:
+    linear-gradient(90deg, #f8fafc 0%, transparent 22%, transparent 78%, #f8fafc 100%),
+    linear-gradient(180deg, #f8fafc 0%, transparent 18%, transparent 74%, #f8fafc 100%);
+}
+
+/* =============================================
+   REDUCED MOTION
+   ============================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =============================================
+   SCROLLBARS — light chrome
+   ============================================= */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(241, 245, 249, 0.8); }
+::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.7); }
+
+/* =============================================
+   LEAFLET MAP — light tiles + glass chrome
+   ============================================= */
+
 .leaflet-container {
-  background-color: #09090b !important;
+  background-color: #e2e8f0 !important;
   font-family: inherit;
 }
 
-.dark-tiles {
-  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+.leaflet-custom-tooltip {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Map control buttons light style */
+.leaflet-control-zoom a {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  color: #334155 !important;
+  border-color: rgba(203, 213, 225, 0.8) !important;
+  backdrop-filter: blur(8px);
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+}
+
+/* =============================================
+   FORM INPUT BASE — light mode
+   ============================================= */
+
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+textarea,
+select {
+  color: #0f172a;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
 }

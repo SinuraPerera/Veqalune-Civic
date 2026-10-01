@@ -291,6 +291,9 @@ export interface Translations {
     viewDetailsBtn: string;
     actionRequired: string;
     slaTurnaround: string;
+    recentReports: string;
+    viewAll: string;
+    markResolved: string;
   };
 
   // Insights / Predict Page
@@ -685,6 +688,9 @@ export const translations: Record<Language, Translations> = {
       viewDetailsBtn: 'Inspect Incident Brief',
       actionRequired: 'Action Recommended',
       slaTurnaround: 'Estimated Turnaround SLA',
+      recentReports: 'Recent Reports',
+      viewAll: 'View All',
+      markResolved: 'Mark Resolved',
     },
     insightsPage: {
       predictTag: 'VÉQALUNE PREDICT — Scenario / Risk Simulation',
@@ -1068,6 +1074,9 @@ export const translations: Record<Language, Translations> = {
       viewDetailsBtn: 'විස්තර පරීක්ෂා කරන්න',
       actionRequired: 'ක්‍රියාමාර්ග නිර්දේශිතයි',
       slaTurnaround: 'අපේක්ෂිත විසඳුම් කාලය (SLA)',
+      recentReports: 'මෑත වාර්තා',
+      viewAll: 'සියල්ල බලන්න',
+      markResolved: 'විසඳුම් ලෙස සලකුණු කරන්න',
     },
     insightsPage: {
       predictTag: 'VÉQALUNE PREDICT — අවදානම් පුරෝකථන අනුකරණය',
@@ -1451,6 +1460,9 @@ export const translations: Record<Language, Translations> = {
       viewDetailsBtn: 'விவரங்களை ஆய்வு செய்க',
       actionRequired: 'நடவடிக்கை பரிந்துரைக்கப்பட்டது',
       slaTurnaround: 'எதிர்பார்க்கப்படும் தீர்வு நேரம் (SLA)',
+      recentReports: 'சமீபத்திய அறிக்கைகள்',
+      viewAll: 'அனைத்தும் காண்க',
+      markResolved: 'தீர்க்கப்பட்டதாக குறியிடு',
     },
     insightsPage: {
       predictTag: 'VÉQALUNE PREDICT — இடர் முன்னறிவிப்பு உருவகப்படுத்துதல்',

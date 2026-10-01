@@ -1,20 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import {
+  Search,
   Layers,
   Flame,
-  Filter,
-  Search,
-  ChevronRight,
-  Sparkles,
-  MapPin,
   RefreshCw,
+  MapPin,
+  ChevronRight,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
-import { Report, HotspotCluster, ReportCategory, SeverityLevel, ReportStatus } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { Report, HotspotCluster, ReportCategory, SeverityLevel } from '../types';
 import { CategoryIcon, getCategoryBadgeStyle } from '../components/CategoryIcon';
 import { getSeverityBadgeColor } from '../utils/scoringEngine';
+import { MapSidebarSkeleton } from '../components/Skeleton';
+import { EmptyHotspots, EmptySearch } from '../components/EmptyState';
 import { triggerDynamicHotspotScan } from '../services/api';
-import { useLanguage } from '../context/LanguageContext';
+import supercluster from 'supercluster';
 
 interface Props {
   reports: Report[];
@@ -44,6 +48,19 @@ export const MapPage: React.FC<Props> = ({
   const [sidebarTab, setSidebarTab] = useState<'incidents' | 'hotspots'>('incidents');
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [currentZoom, setCurrentZoom] = useState<number>(14);
+
+  // Initialize supercluster
+  const clustersRef = useRef<supercluster.Cluster<any, any> | null>(null);
+
+  useEffect(() => {
+    const index = new supercluster({
+      radius: 60,
+      maxZoom: 16,
+      minPoints: 3,
+    });
+    clustersRef.current = index;
+  }, []);
 
   const handleRunGeospatialScan = async () => {
     setIsScanning(true);
@@ -82,6 +99,28 @@ export const MapPage: React.FC<Props> = ({
     return true;
   });
 
+  // Convert reports to GeoJSON for clustering
+  const geoJsonPoints = React.useMemo(() => {
+    return filteredReports.map((report) => ({
+      type: 'Feature' as const,
+      properties: {
+        report,
+      },
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [report.longitude, report.latitude],
+      },
+    }));
+  }, [filteredReports]);
+
+  // Get clusters based on current zoom
+  const clusters = React.useMemo(() => {
+    if (!clustersRef.current) return [];
+    const index = clustersRef.current;
+    index.load(geoJsonPoints);
+    return index.getClusters([-180, -90, 180, 90], currentZoom);
+  }, [geoJsonPoints, currentZoom]);
+
   // Haversine distance helper
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3; // meters
@@ -103,7 +142,6 @@ export const MapPage: React.FC<Props> = ({
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    // Dark styled OSM tile layer
     const map = L.map(mapContainerRef.current, {
       center: [6.9271, 79.8612],
       zoom: 14,
@@ -112,18 +150,23 @@ export const MapPage: React.FC<Props> = ({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // CartoDB Dark Matter tiles
     L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png',
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
       {
         attribution: '&copy; <a href="https://carto.com/">CARTO</a> OpenStreetMap',
         maxZoom: 19,
         subdomains: 'abcd',
+        className: 'dark-tiles', // Retain dark tiles css filter
       }
     ).addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
     const hotspotsLayer = L.layerGroup().addTo(map);
+
+    // Update zoom state on zoom change
+    map.on('zoomend', () => {
+      setCurrentZoom(map.getZoom());
+    });
 
     mapInstanceRef.current = map;
     markersLayerRef.current = markersLayer;
@@ -172,7 +215,7 @@ export const MapPage: React.FC<Props> = ({
 
         circle.bindTooltip(
           `<strong>🔥 ${hs.name}</strong><br/>${hs.reportCount} incidents | Risk: ${hs.riskScore}/100`,
-          { className: 'leaflet-custom-tooltip', permanent: false, direction: 'top' }
+          { className: 'bg-white shadow-lg rounded-xl border border-slate-200 text-slate-800 text-xs px-3 py-2', permanent: false, direction: 'top' }
         );
 
         hotspotsLayer.addLayer(circle);
@@ -183,7 +226,7 @@ export const MapPage: React.FC<Props> = ({
           html: `
             <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
               <div style="position: absolute; width: 100%; height: 100%; border-radius: 9999px; background-color: ${color}; opacity: 0.35; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-              <div style="width: 22px; height: 22px; border-radius: 9999px; background-color: #09090b; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center; color: ${color}; font-size: 11px; font-weight: 800; box-shadow: 0 0 12px ${color}88;">
+              <div style="width: 22px; height: 22px; border-radius: 9999px; background-color: #ffffff; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center; color: ${color}; font-size: 11px; font-weight: 800; box-shadow: 0 4px 12px ${color}44;">
                 ${hs.reportCount}
               </div>
             </div>
@@ -202,55 +245,103 @@ export const MapPage: React.FC<Props> = ({
       });
     }
 
-    // 2. Render Individual Incident Markers
-    filteredReports.forEach((report) => {
-      const isSelected = activeReport?.id === report.id;
-      let markerColor = '#10b981'; // LOW
-      if (report.severity === 'CRITICAL') markerColor = '#f43f5e';
-      else if (report.severity === 'HIGH') markerColor = '#fb923c';
-      else if (report.severity === 'MODERATE') markerColor = '#eab308';
+    // 2. Render Clustered Markers
+    clusters.forEach((cluster) => {
+      const [lng, lat] = cluster.geometry.coordinates;
+      const isCluster = cluster.properties.cluster;
+      const pointCount = cluster.properties.point_count || 1;
+      const report = cluster.properties.report;
 
-      const customIcon = L.divIcon({
-        className: 'custom-incident-pin',
-        html: `
-          <div style="
-            width: ${isSelected ? '32px' : '24px'};
-            height: ${isSelected ? '32px' : '24px'};
-            border-radius: 9999px;
-            background-color: ${markerColor};
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #09090b;
-            font-weight: 900;
-            font-size: ${isSelected ? '12px' : '10px'};
-            transition: all 0.2s ease;
-            transform: ${isSelected ? 'scale(1.2)' : 'scale(1)'};
-          ">
-            ${report.priority_score}
-          </div>
-        `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-      });
+      if (isCluster) {
+        // Render cluster marker
+        const clusterSize = Math.min(24 + Math.log2(pointCount) * 8, 48);
+        const clusterIcon = L.divIcon({
+          className: 'custom-cluster-pin',
+          html: `
+            <div style="
+              width: ${clusterSize}px;
+              height: ${clusterSize}px;
+              border-radius: 9999px;
+              background-color: #10b981;
+              border: 3px solid #ffffff;
+              box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #ffffff;
+              font-weight: 900;
+              font-size: ${Math.max(10, clusterSize / 3)}px;
+              cursor: pointer;
+            ">
+              ${pointCount}
+            </div>
+          `,
+          iconSize: [clusterSize, clusterSize],
+          iconAnchor: [clusterSize / 2, clusterSize / 2],
+        });
 
-      const marker = L.marker([report.latitude, report.longitude], { icon: customIcon });
+        const marker = L.marker([lat, lng], { icon: clusterIcon });
+        marker.on('click', () => {
+          const expansionZoom = clustersRef.current?.getClusterExpansionZoom(cluster.properties.cluster_id);
+          if (expansionZoom !== undefined) {
+            map.flyTo([lat, lng], expansionZoom, { duration: 0.5 });
+          }
+        });
+        marker.bindTooltip(
+          `${pointCount} reports`,
+          { className: 'bg-white shadow-lg rounded-xl border border-slate-200 text-slate-800 text-xs px-3 py-2', direction: 'top' }
+        );
+        markersLayer.addLayer(marker);
+      } else if (report) {
+        // Render individual report marker
+        const isSelected = activeReport?.id === report.id;
+        let markerColor = '#10b981'; // LOW
+        if (report.severity === 'CRITICAL') markerColor = '#f43f5e';
+        else if (report.severity === 'HIGH') markerColor = '#fb923c';
+        else if (report.severity === 'MODERATE') markerColor = '#eab308';
 
-      marker.on('click', () => {
-        setActiveReport(report);
-        setActiveCluster(null);
-      });
+        const customIcon = L.divIcon({
+          className: 'custom-incident-pin',
+          html: `
+            <div style="
+              width: ${isSelected ? '32px' : '24px'};
+              height: ${isSelected ? '32px' : '24px'};
+              border-radius: 9999px;
+              background-color: ${markerColor};
+              border: 2px solid #ffffff;
+              box-shadow: 0 4px 14px rgba(15,23,42,0.22);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #ffffff;
+              font-weight: 900;
+              font-size: ${isSelected ? '12px' : '10px'};
+              transition: all 0.2s ease;
+              transform: ${isSelected ? 'scale(1.2)' : 'scale(1)'};
+            ">
+              ${report.priority_score}
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        });
 
-      marker.bindTooltip(
-        `<strong>${report.title}</strong><br/>Score: ${report.priority_score}/100 • ${report.severity}`,
-        { className: 'leaflet-custom-tooltip', direction: 'top' }
-      );
+        const marker = L.marker([lat, lng], { icon: customIcon });
 
-      markersLayer.addLayer(marker);
+        marker.on('click', () => {
+          setActiveReport(report);
+          setActiveCluster(null);
+        });
+
+        marker.bindTooltip(
+          `<strong>${report.title}</strong><br/>Score: ${report.priority_score}/100 • ${report.severity}`,
+          { className: 'bg-white shadow-lg rounded-xl border border-slate-200 text-slate-800 text-xs px-3 py-2', direction: 'top' }
+        );
+
+        markersLayer.addLayer(marker);
+      }
     });
-  }, [filteredReports, hotspots, showHotspots, activeReport, activeCluster]);
+  }, [clusters, hotspots, showHotspots, activeReport, activeCluster]);
 
   const categories: ReportCategory[] = ['Waste', 'Road Damage', 'Water', 'Drainage', 'Energy', 'Public Safety'];
   const severities: SeverityLevel[] = ['CRITICAL', 'HIGH', 'MODERATE', 'LOW'];
@@ -258,85 +349,83 @@ export const MapPage: React.FC<Props> = ({
   return (
     <div className="relative w-full h-[calc(100vh-4rem)] flex flex-col md:flex-row overflow-hidden">
       {/* Collapsible Left Intelligence Sidebar */}
-      <div className="w-full md:w-96 bg-zinc-950/95 backdrop-blur-md border-r border-zinc-800 flex flex-col z-20 h-72 md:h-full shrink-0 shadow-2xl">
+      <div className="w-full md:w-96 bg-white/85 backdrop-blur-xl border-r border-slate-200/60 shadow-sm flex flex-col z-20 h-72 md:h-full shrink-0">
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-zinc-800 space-y-3">
+        <div className="p-5 border-b border-slate-200/60 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-400">
-                <Layers className="w-4 h-4" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-500">
+                <Layers className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
-                  VÉQALUNE <span className="text-emerald-400">MAP</span>
+                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                  VÉQALUNE <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">MAP</span>
                 </h2>
-                <div className="text-[10px] text-zinc-400 font-mono">Colombo Pilot • Dynamic Spatial Intelligence</div>
+                <div className="text-[11px] text-slate-500 font-mono">Colombo Pilot • Dynamic Spatial Intelligence</div>
               </div>
             </div>
             <button
               onClick={handleRunGeospatialScan}
               disabled={isScanning}
               title="Run Dynamic Hotspot Detection Algorithm"
-              className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border border-zinc-700/80 flex items-center gap-1 text-[11px] font-mono transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center gap-2 text-xs font-mono transition-all cursor-pointer shadow-sm"
             >
-              <RefreshCw className={`w-3 h-3 ${isScanning ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
               <span>{t.mapPage.runSpatialScan}</span>
             </button>
           </div>
 
           {/* Scan Toast Message */}
           {scanMessage && (
-            <div className="p-2 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-[10px] font-mono leading-tight">
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-mono leading-tight backdrop-blur-sm">
               {scanMessage}
             </div>
           )}
 
           {/* Tab Switch: Incidents vs Dynamic Hotspots */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs">
+          <div className="grid grid-cols-2 p-1.5 rounded-2xl bg-slate-50/80 border border-slate-200/60 text-sm shadow-inner">
             <button
-              onClick={() => {
-                setSidebarTab('incidents');
-                setActiveCluster(null);
-              }}
-              className={`py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              onClick={() => setSidebarTab('incidents')}
+              className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/50 ${
                 sidebarTab === 'incidents'
-                  ? 'bg-emerald-500 text-zinc-950 shadow'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-white text-emerald-600 border border-slate-200/60 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
               }`}
+              aria-pressed={sidebarTab === 'incidents'}
             >
-              {t.mapPage.tabIncidents} ({filteredReports.length})
+              {t.mapPage.incidentsTab}
             </button>
             <button
               onClick={() => setSidebarTab('hotspots')}
-              className={`py-1.5 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/50 ${
                 sidebarTab === 'hotspots'
-                  ? 'bg-rose-500 text-zinc-950 shadow'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-white text-rose-500 border border-slate-200/60 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'
               }`}
+              aria-pressed={sidebarTab === 'hotspots'}
             >
-              <Flame className="w-3 h-3" />
-              {t.mapPage.tabHotspots} ({hotspots.length})
+              {t.mapPage.hotspotsTab}
             </button>
           </div>
 
           {/* Search bar */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t.tablePage.searchPlaceholder}
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-400 transition-all shadow-sm"
             />
           </div>
 
           {/* Filters Grid */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-3 text-sm">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-emerald-500"
+              className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm focus:outline-none focus:border-emerald-400 transition-all shadow-sm cursor-pointer"
             >
               <option value="ALL">All Categories</option>
               {categories.map((c) => (
@@ -347,7 +436,7 @@ export const MapPage: React.FC<Props> = ({
             <select
               value={selectedSeverity}
               onChange={(e) => setSelectedSeverity(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-emerald-500"
+              className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm focus:outline-none focus:border-emerald-400 transition-all shadow-sm cursor-pointer"
             >
               <option value="ALL">All Severities</option>
               {severities.map((s) => (
@@ -358,13 +447,13 @@ export const MapPage: React.FC<Props> = ({
 
           {/* Active Cluster Filter Indicator */}
           {activeCluster && (
-            <div className="p-2 rounded-lg bg-rose-950/60 border border-rose-800 flex items-center justify-between text-xs">
-              <span className="text-rose-300 font-mono text-[11px] truncate">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between text-sm shadow-sm">
+              <span className="text-rose-700 font-mono text-xs truncate font-medium">
                 Filtered: {activeCluster.name}
               </span>
               <button
                 onClick={() => setActiveCluster(null)}
-                className="text-rose-400 hover:text-rose-200 text-[10px] uppercase font-bold underline cursor-pointer"
+                className="text-rose-500 hover:text-rose-700 text-xs uppercase font-bold cursor-pointer transition-colors"
               >
                 Clear
               </button>
@@ -372,32 +461,29 @@ export const MapPage: React.FC<Props> = ({
           )}
 
           {/* Hotspot Toggle */}
-          <div className="flex items-center justify-between pt-1 text-xs">
-            <label className="flex items-center gap-2 text-zinc-400 cursor-pointer select-none">
+          <div className="flex items-center justify-between pt-1 text-sm">
+            <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none font-medium">
               <input
                 type="checkbox"
                 checked={showHotspots}
                 onChange={(e) => setShowHotspots(e.target.checked)}
-                className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer"
+                className="rounded bg-white border-slate-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
               />
               <span>{t.mapPage.toggleHotspots}</span>
             </label>
-            <span className="text-[10px] font-mono text-rose-400">
+            <span className="text-xs font-mono font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
               {hotspots.length} Discovered
             </span>
           </div>
         </div>
 
         {/* Scrollable Content (Incidents List or Hotspots List) */}
-        <div className="p-3 overflow-y-auto flex-1 space-y-2">
-          {sidebarTab === 'hotspots' ? (
+        <div className="p-4 overflow-y-auto flex-1 space-y-3 bg-slate-50/30">
+          {!reports || reports.length === 0 ? (
+            <MapSidebarSkeleton />
+          ) : sidebarTab === 'hotspots' ? (
             hotspots.length === 0 ? (
-              <div className="p-6 text-center text-xs text-zinc-400 space-y-2">
-                <div>No recurring hotspots formed yet.</div>
-                <p className="text-[11px] text-zinc-500">
-                  Submit 2-3 reports within 450m of each other to watch VÉQALUNE discover a new hotspot in real time!
-                </p>
-              </div>
+              <EmptyHotspots />
             ) : (
               hotspots.map((hs) => {
                 const isSelected = activeCluster?.id === hs.id;
@@ -411,49 +497,46 @@ export const MapPage: React.FC<Props> = ({
                         duration: 0.8,
                       });
                     }}
-                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
+                    className={`p-4 rounded-2xl border text-left cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-rose-950/40 border-rose-600 shadow-md shadow-rose-950/30'
-                        : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700'
+                        ? 'bg-rose-50 border-rose-300 shadow-md'
+                        : 'glass border-slate-200 hover:bg-white/90 hover:border-slate-300 hover:shadow-sm'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-1.5">
-                          <Flame className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                          <span className="text-xs font-bold text-zinc-100 line-clamp-1">
+                        <div className="flex items-center gap-2">
+                          <Flame className={`w-4 h-4 shrink-0 ${isSelected ? 'text-rose-500' : 'text-rose-400'}`} />
+                          <span className="text-sm font-bold text-slate-800 line-clamp-1">
                             {hs.name}
                           </span>
                         </div>
-                        <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                          {hs.reportCount} {t.mapPage.incidentsCount} • {formatCategory(hs.dominantCategory)}
+                        <div className="text-xs font-mono text-slate-500 mt-1.5 font-medium">
+                          <span className="bg-slate-100 px-1.5 py-0.5 rounded mr-1">{hs.reportCount} {t.mapPage.incidentsCount}</span> • {formatCategory(hs.dominantCategory)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-mono font-bold text-rose-400">
+                      <div className="text-right bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm">
+                        <span className="text-sm font-mono font-extrabold text-rose-500">
                           {hs.riskScore}
                         </span>
-                        <span className="text-[10px] text-zinc-400 font-mono">/100</span>
+                        <span className="text-[10px] text-slate-400 font-mono block -mt-1">/100</span>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-zinc-300 line-clamp-2 mt-2 leading-relaxed">
+                    <p className="text-[13px] text-slate-600 line-clamp-2 mt-3 leading-relaxed">
                       {hs.insightText}
                     </p>
 
-                    <div className="mt-2.5 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] font-mono text-zinc-400">
+                    <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-mono text-slate-500">
                       <span>Radius: {hs.radiusMeters}m</span>
-                      <span className="text-emerald-400 font-semibold">{t.mapPage.centerMap} →</span>
+                      <span className="text-emerald-500 font-semibold">{t.mapPage.centerMap} →</span>
                     </div>
                   </div>
                 );
               })
             )
           ) : filteredReports.length === 0 ? (
-            <div className="p-6 text-center text-xs text-zinc-400 space-y-1">
-              <div>{t.mapPage.noReportsFound}</div>
-              <p className="text-[11px] text-zinc-500">Try adjusting your category or severity filters.</p>
-            </div>
+            <EmptySearch />
           ) : (
             filteredReports.map((report) => {
               const isSelected = activeReport?.id === report.id;
@@ -469,56 +552,56 @@ export const MapPage: React.FC<Props> = ({
                       duration: 0.8,
                     });
                   }}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all space-y-2 ${
+                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all space-y-3 ${
                     isSelected
-                      ? 'bg-zinc-900 border-emerald-500 shadow-md shadow-emerald-950/40'
-                      : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700'
+                      ? 'bg-emerald-50/50 border-emerald-300 shadow-md'
+                      : 'glass border-slate-200 hover:bg-white/90 hover:border-slate-300 hover:shadow-sm'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span
-                        className={`p-1 rounded-md border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                        className={`p-1.5 rounded-lg border shadow-sm ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
                       >
-                        <CategoryIcon category={report.category} size={12} />
+                        <CategoryIcon category={report.category} size={14} />
                       </span>
-                      <span className="font-mono text-[10px] text-zinc-400 font-semibold">
+                      <span className="font-mono text-[11px] text-slate-400 font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-100">
                         {report.id}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border ${sevStyle.bg} ${sevStyle.text} ${sevStyle.border}`}
+                        className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold border shadow-sm ${sevStyle.bg} ${sevStyle.text} ${sevStyle.border}`}
                       >
                         {formatSeverity(report.severity)}
                       </span>
-                      <span className="text-xs font-mono font-extrabold text-emerald-400">
+                      <span className={`text-sm font-mono font-extrabold ${isSelected ? 'text-emerald-600' : 'text-emerald-500'}`}>
                         {report.priority_score}
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-bold text-zinc-200 line-clamp-1">
+                    <h3 className="text-sm font-bold text-slate-800 line-clamp-1">
                       {report.title}
                     </h3>
-                    <p className="text-[10px] text-zinc-400 truncate flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3 text-zinc-500 shrink-0" />
+                    <p className="text-xs text-slate-500 truncate flex items-center gap-1.5 mt-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       {report.location_label}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80 text-[10px] text-zinc-400">
-                    <span>AI Confidence: <strong className="text-zinc-300 font-mono">{report.ai_confidence}%</strong></span>
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/60 text-xs text-slate-500">
+                    <span className="font-medium">AI Confidence: <strong className="text-slate-700 font-mono">{report.ai_confidence}%</strong></span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectReport(report);
                       }}
-                      className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-0.5 cursor-pointer"
+                      className="text-emerald-500 hover:text-emerald-600 font-bold flex items-center gap-1 cursor-pointer transition-colors bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm hover:shadow"
                     >
                       <span>{t.mapPage.viewDetails}</span>
-                      <ChevronRight className="w-3 h-3" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -533,79 +616,79 @@ export const MapPage: React.FC<Props> = ({
         <div ref={mapContainerRef} className="w-full h-full"></div>
 
         {/* Map Legend Overlay */}
-        <div className="absolute top-4 right-4 z-20 bg-zinc-950/85 backdrop-blur-md border border-zinc-800 p-3 rounded-xl shadow-xl text-xs space-y-2 pointer-events-auto">
-          <div className="font-bold text-[11px] text-zinc-300 uppercase tracking-wider">
+        <div className="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/60 shadow-sm text-sm space-y-3 pointer-events-auto">
+          <div className="font-bold text-[11px] text-slate-500 uppercase tracking-wider">
             Severity Legend
           </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span className="text-zinc-300">{formatSeverity('CRITICAL')} (85+)</span>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-rose-500 shadow-sm border border-white"></span>
+              <span className="text-slate-700 font-medium">{formatSeverity('CRITICAL')} <span className="text-slate-400 font-mono text-[10px]">(85+)</span></span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span className="text-zinc-300">{formatSeverity('HIGH')} (70-84)</span>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-amber-500 shadow-sm border border-white"></span>
+              <span className="text-slate-700 font-medium">{formatSeverity('HIGH')} <span className="text-slate-400 font-mono text-[10px]">(70-84)</span></span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
-              <span className="text-zinc-300">{formatSeverity('MODERATE')} (50-69)</span>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm border border-white"></span>
+              <span className="text-slate-700 font-medium">{formatSeverity('MODERATE')} <span className="text-slate-400 font-mono text-[10px]">(50-69)</span></span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span className="text-zinc-300">{formatSeverity('LOW')} (&lt;50)</span>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm border border-white"></span>
+              <span className="text-slate-700 font-medium">{formatSeverity('LOW')} <span className="text-slate-400 font-mono text-[10px]">(&lt;50)</span></span>
             </div>
           </div>
         </div>
 
         {/* Selected Hotspot Cluster Drawer */}
         {activeCluster && !activeReport && (
-          <div className="absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-96 z-20 bg-zinc-950/95 backdrop-blur-md border border-rose-700/80 rounded-2xl shadow-2xl p-4 animate-in slide-in-from-bottom-4 duration-200">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-mono text-rose-400 font-bold uppercase flex items-center gap-1">
+          <div className="absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-96 z-20 glass-modal border border-rose-200/60 shadow-xl rounded-3xl p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono text-rose-500 font-bold uppercase flex items-center gap-1.5 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 w-fit">
                   <Flame className="w-3.5 h-3.5" />
                   Dynamic Hotspot Cluster
                 </span>
-                <h3 className="text-sm font-extrabold text-zinc-100">
+                <h3 className="text-base font-extrabold text-slate-900 leading-tight">
                   {activeCluster.name}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveCluster(null)}
-                className="text-zinc-400 hover:text-zinc-200 p-1 text-xs cursor-pointer"
+                className="bg-white/80 text-slate-500 hover:text-slate-800 hover:bg-white border border-slate-200/60 shadow-sm p-1.5 text-sm cursor-pointer transition-colors rounded-xl"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 my-2.5 text-center">
-              <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                <div className="text-[10px] text-zinc-400">{t.mapPage.riskScore}</div>
-                <div className="text-base font-extrabold font-mono text-rose-400">
-                  {activeCluster.riskScore}/100
+            <div className="grid grid-cols-3 gap-3 my-4 text-center">
+              <div className="p-3 rounded-2xl bg-white border border-rose-100 shadow-sm">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase">{t.mapPage.riskScore}</div>
+                <div className="text-lg font-extrabold font-mono text-rose-500 mt-0.5">
+                  {activeCluster.riskScore}<span className="text-xs text-rose-300">/100</span>
                 </div>
               </div>
-              <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                <div className="text-[10px] text-zinc-400">{t.tablePage.colStatus}</div>
-                <div className="text-base font-extrabold font-mono text-emerald-400">
+              <div className="p-3 rounded-2xl bg-white border border-emerald-100 shadow-sm">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase">{t.tablePage.colStatus}</div>
+                <div className="text-lg font-extrabold font-mono text-emerald-500 mt-0.5">
                   {activeCluster.reportCount}
                 </div>
               </div>
-              <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                <div className="text-[10px] text-zinc-400">{t.mapPage.radiusBuffer}</div>
-                <div className="text-base font-extrabold font-mono text-sky-400">
-                  {activeCluster.radiusMeters}m
+              <div className="p-3 rounded-2xl bg-white border border-sky-100 shadow-sm">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase">{t.mapPage.radiusBuffer}</div>
+                <div className="text-lg font-extrabold font-mono text-sky-500 mt-0.5">
+                  {activeCluster.radiusMeters}<span className="text-xs text-sky-300">m</span>
                 </div>
               </div>
             </div>
 
-            <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/70 p-2.5 rounded-lg border border-zinc-800/80 mb-2">
+            <p className="text-sm text-slate-700 leading-relaxed bg-white/80 p-4 rounded-2xl border border-slate-200/60 mb-4 shadow-sm">
               {activeCluster.insightText}
             </p>
 
-            <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs mb-3 space-y-1">
-              <div className="text-[10px] font-mono uppercase text-zinc-400">{t.mapPage.systemicRecommendation}</div>
-              <p className="text-zinc-200 font-medium text-[11px]">
+            <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/60 text-sm mb-4 space-y-1.5 shadow-inner">
+              <div className="text-[10px] font-mono font-bold uppercase text-slate-500">{t.mapPage.systemicRecommendation}</div>
+              <p className="text-slate-800 font-medium text-sm leading-snug">
                 {activeCluster.recommendedIntervention}
               </p>
             </div>
@@ -614,7 +697,7 @@ export const MapPage: React.FC<Props> = ({
               onClick={() => {
                 setSidebarTab('incidents');
               }}
-              className="w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs transition-all border border-zinc-700 cursor-pointer"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-white font-bold text-sm transition-all shadow-md shadow-rose-500/20 cursor-pointer"
             >
               Filter {activeCluster.reportCount} Reports in Sidebar
             </button>
@@ -623,48 +706,48 @@ export const MapPage: React.FC<Props> = ({
 
         {/* Selected Incident Drawer / Card */}
         {activeReport && (
-          <div className="absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-96 z-20 bg-zinc-950/95 backdrop-blur-md border border-zinc-700/80 rounded-2xl shadow-2xl p-4 animate-in slide-in-from-bottom-4 duration-200">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div>
-                <span className="text-[10px] font-mono text-zinc-400">
+          <div className="absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-96 z-20 glass-modal border border-emerald-200/60 shadow-xl rounded-3xl p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-slate-500 font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">
                   {activeReport.id} • {activeReport.location_label}
                 </span>
-                <h3 className="text-sm font-bold text-zinc-100 line-clamp-1">
+                <h3 className="text-base font-bold text-slate-900 line-clamp-2 leading-snug mt-1">
                   {activeReport.title}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveReport(null)}
-                className="text-zinc-400 hover:text-zinc-200 p-1 text-xs cursor-pointer"
+                className="bg-white/80 text-slate-500 hover:text-slate-800 hover:bg-white border border-slate-200/60 shadow-sm p-1.5 text-sm cursor-pointer transition-colors rounded-xl shrink-0"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 my-2.5">
-              <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-center">
-                <div className="text-[10px] text-zinc-400">{t.common.priorityScore}</div>
-                <div className="text-lg font-extrabold font-mono text-emerald-400">
-                  {activeReport.priority_score}/100
+            <div className="grid grid-cols-2 gap-3 my-4">
+              <div className="p-3 rounded-2xl bg-white border border-emerald-100 shadow-sm text-center">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase">{t.common.priorityScore}</div>
+                <div className="text-xl font-extrabold font-mono text-emerald-500 mt-0.5">
+                  {activeReport.priority_score}<span className="text-xs text-emerald-300">/100</span>
                 </div>
               </div>
-              <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-center">
-                <div className="text-[10px] text-zinc-400">AI Confidence</div>
-                <div className="text-lg font-extrabold font-mono text-sky-400">
-                  {activeReport.ai_confidence}%
+              <div className="p-3 rounded-2xl bg-white border border-sky-100 shadow-sm text-center">
+                <div className="text-[10px] font-semibold text-slate-500 uppercase">AI Confidence</div>
+                <div className="text-xl font-extrabold font-mono text-sky-500 mt-0.5">
+                  {activeReport.ai_confidence}<span className="text-xs text-sky-300">%</span>
                 </div>
               </div>
             </div>
 
-            <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800/80 mb-3">
+            <p className="text-sm text-slate-700 line-clamp-3 leading-relaxed bg-white/80 p-4 rounded-2xl border border-slate-200/60 mb-4 shadow-sm">
               {activeReport.ai_analysis}
             </p>
 
             <button
               onClick={() => onSelectReport(activeReport)}
-              className="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-4 h-4 text-white" />
               {t.mapPage.viewDetails}
             </button>
           </div>

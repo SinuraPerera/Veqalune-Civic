@@ -13,6 +13,16 @@ export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export type ReportStatus = 'New' | 'Under Review' | 'Action Recommended' | 'Resolved';
 
+export interface SystemHealth {
+  status: string;
+  service: string;
+  version: string;
+  aiConfigured: boolean;
+  geminiConfigured?: boolean;
+  pythonAiConfigured?: boolean;
+  reportsCount: number;
+}
+
 export interface PriorityBreakdown {
   severityWeight: number; // e.g. 0-30
   environmentalWeight: number; // e.g. 0-25
@@ -48,7 +58,7 @@ export interface Report {
   estimated_resolution_time?: string;
   is_hotspot?: boolean;
   hotspot_cluster_id?: string;
-  reporter_type?: 'Citizen' | 'Field Inspector' | 'Automated Sensor';
+  reporter_type?: 'Citizen' | 'Field Inspector' | 'Automated Sensor' | 'Security Personnel' | 'Transit Staff' | 'Parent' | 'Transit Operator';
   is_demo?: boolean;
 }
 

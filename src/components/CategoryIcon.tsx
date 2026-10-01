@@ -48,45 +48,45 @@ export function getCategoryBadgeStyle(category: ReportCategory): {
   switch (category) {
     case 'Waste':
       return {
-        bg: 'bg-emerald-950/60',
-        text: 'text-emerald-300',
-        border: 'border-emerald-800/60',
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-700',
+        border: 'border-emerald-200',
       };
     case 'Road Damage':
       return {
-        bg: 'bg-amber-950/60',
-        text: 'text-amber-300',
-        border: 'border-amber-800/60',
+        bg: 'bg-amber-50',
+        text: 'text-amber-700',
+        border: 'border-amber-200',
       };
     case 'Water':
       return {
-        bg: 'bg-cyan-950/60',
-        text: 'text-cyan-300',
-        border: 'border-cyan-800/60',
+        bg: 'bg-cyan-50',
+        text: 'text-cyan-700',
+        border: 'border-cyan-200',
       };
     case 'Drainage':
       return {
-        bg: 'bg-blue-950/60',
-        text: 'text-blue-300',
-        border: 'border-blue-800/60',
+        bg: 'bg-blue-50',
+        text: 'text-blue-700',
+        border: 'border-blue-200',
       };
     case 'Energy':
       return {
-        bg: 'bg-purple-950/60',
-        text: 'text-purple-300',
-        border: 'border-purple-800/60',
+        bg: 'bg-violet-50',
+        text: 'text-violet-700',
+        border: 'border-violet-200',
       };
     case 'Public Safety':
       return {
-        bg: 'bg-rose-950/60',
-        text: 'text-rose-300',
-        border: 'border-rose-800/60',
+        bg: 'bg-rose-50',
+        text: 'text-rose-700',
+        border: 'border-rose-200',
       };
     default:
       return {
-        bg: 'bg-zinc-900',
-        text: 'text-zinc-300',
-        border: 'border-zinc-700',
+        bg: 'bg-slate-50',
+        text: 'text-slate-600',
+        border: 'border-slate-200',
       };
   }
 }

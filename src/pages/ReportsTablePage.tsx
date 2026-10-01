@@ -5,11 +5,13 @@ import {
   Download,
   Eye,
   MapPin,
+  FileText,
 } from 'lucide-react';
 import { Report, ReportStatus, ReportCategory, SeverityLevel } from '../types';
 import { CategoryIcon, getCategoryBadgeStyle } from '../components/CategoryIcon';
 import { getSeverityBadgeColor, getStatusBadgeColor } from '../utils/scoringEngine';
 import { useLanguage } from '../context/LanguageContext';
+import { exportToCSV, exportFilteredToCSV } from '../utils/exportUtils';
 
 interface Props {
   reports: Report[];
@@ -60,38 +62,16 @@ export const ReportsTablePage: React.FC<Props> = ({
       }
     });
 
-  const exportJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(reports, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', 'veqalune_civic_reports.json');
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+  const handleExportAll = () => {
+    exportToCSV(reports);
   };
 
-  const exportCSV = () => {
-    const headers = ['ID', 'Category', 'Title', 'Location', 'Severity', 'PriorityScore', 'AIConfidence', 'Status', 'CreatedAt'];
-    const rows = reports.map(r => [
-      r.id,
-      r.category,
-      `"${r.title.replace(/"/g, '""')}"`,
-      `"${r.location_label.replace(/"/g, '""')}"`,
-      r.severity,
-      r.priority_score,
-      r.ai_confidence,
-      r.status,
-      r.created_at
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'veqalune_civic_reports.csv');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  const handleExportFiltered = () => {
+    exportFilteredToCSV(reports, {
+      category: categoryFilter,
+      severity: severityFilter,
+      status: statusFilter,
+    });
   };
 
   const categories: ReportCategory[] = ['Waste', 'Road Damage', 'Water', 'Drainage', 'Energy', 'Public Safety'];
@@ -101,54 +81,54 @@ export const ReportsTablePage: React.FC<Props> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="p-1 rounded bg-zinc-900 border border-zinc-800 text-teal-400">
+            <span className="p-1 rounded bg-teal-50 border border-teal-200 text-teal-600">
               <Table className="w-3.5 h-3.5" />
             </span>
-            <span className="text-xs font-mono font-bold text-teal-400 uppercase tracking-wider">
+            <span className="text-xs font-mono font-bold text-teal-600 uppercase tracking-wider">
               {t.nav.civic}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
             {t.tablePage.heading}
           </h1>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-slate-500">
             {t.tablePage.subheading}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={exportCSV}
-            className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold border border-zinc-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+            onClick={handleExportAll}
+            className="px-3.5 py-2 rounded-xl bg-white/70 hover:bg-white text-slate-600 text-xs font-semibold border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm backdrop-blur-sm"
           >
             <Download className="w-3.5 h-3.5" />
-            Export CSV
+            Export All
           </button>
           <button
-            onClick={exportJSON}
-            className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold border border-zinc-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+            onClick={handleExportFiltered}
+            className="px-3.5 py-2 rounded-xl bg-white/70 hover:bg-white text-slate-600 text-xs font-semibold border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm backdrop-blur-sm"
           >
-            <Download className="w-3.5 h-3.5" />
-            Export JSON
+            <FileText className="w-3.5 h-3.5" />
+            Export Filtered
           </button>
         </div>
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+      <div className="p-4 rounded-2xl glass-card space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search */}
           <div className="lg:col-span-2 relative">
-            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-3" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t.tablePage.searchPlaceholder}
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/70 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-400"
             />
           </div>
 
@@ -157,7 +137,7 @@ export const ReportsTablePage: React.FC<Props> = ({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500"
+              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-emerald-400"
             >
               <option value="ALL">All Categories</option>
               {categories.map((c) => (
@@ -171,7 +151,7 @@ export const ReportsTablePage: React.FC<Props> = ({
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500"
+              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-emerald-400"
             >
               <option value="ALL">All Severities</option>
               {severities.map((s) => (
@@ -185,7 +165,7 @@ export const ReportsTablePage: React.FC<Props> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500"
+              className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 focus:outline-none focus:border-emerald-400"
             >
               <option value="ALL">All Statuses</option>
               {statuses.map((st) => (
@@ -195,10 +175,10 @@ export const ReportsTablePage: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-1 text-xs text-zinc-400">
+        <div className="flex items-center justify-between pt-1 text-xs text-slate-500">
           <div>
-            Showing <strong className="text-zinc-200 font-mono">{filteredReports.length}</strong> of{' '}
-            <strong className="text-zinc-200 font-mono">{reports.length}</strong> {t.mapPage.incidentsCount}
+            Showing <strong className="text-slate-800 font-mono">{filteredReports.length}</strong> of{' '}
+            <strong className="text-slate-800 font-mono">{reports.length}</strong> {t.mapPage.incidentsCount}
           </div>
 
           <div className="flex items-center gap-2">
@@ -213,8 +193,8 @@ export const ReportsTablePage: React.FC<Props> = ({
               }}
               className={`px-2.5 py-1 rounded-lg border font-mono text-[11px] transition-colors cursor-pointer ${
                 sortField === 'priority_score'
-                  ? 'bg-zinc-800 text-emerald-400 border-zinc-700'
-                  : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                  ? 'bg-slate-100 text-emerald-600 border-slate-200'
+                  : 'bg-white text-slate-500 border-slate-200'
               }`}
             >
               {t.tablePage.colScore} {sortField === 'priority_score' ? (sortAsc ? '▲' : '▼') : ''}
@@ -229,8 +209,8 @@ export const ReportsTablePage: React.FC<Props> = ({
               }}
               className={`px-2.5 py-1 rounded-lg border font-mono text-[11px] transition-colors cursor-pointer ${
                 sortField === 'created_at'
-                  ? 'bg-zinc-800 text-emerald-400 border-zinc-700'
-                  : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                  ? 'bg-slate-100 text-emerald-600 border-slate-200'
+                  : 'bg-white text-slate-500 border-slate-200'
               }`}
             >
               {t.tablePage.colDate} {sortField === 'created_at' ? (sortAsc ? '▲' : '▼') : ''}
@@ -240,10 +220,10 @@ export const ReportsTablePage: React.FC<Props> = ({
       </div>
 
       {/* Main Table */}
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden shadow-xl">
+      <div className="rounded-2xl border border-slate-200/60 bg-white/60 backdrop-blur-sm overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-950/80 border-b border-zinc-800 text-[11px] uppercase font-mono text-zinc-400">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase font-mono text-slate-500">
               <tr>
                 <th className="px-4 py-3.5">{t.tablePage.colId} / {t.tablePage.colCategory}</th>
                 <th className="px-4 py-3.5">{t.tablePage.colTitle} / {t.tablePage.colLocation}</th>
@@ -254,10 +234,10 @@ export const ReportsTablePage: React.FC<Props> = ({
                 <th className="px-4 py-3.5 text-right">{t.tablePage.colActions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/80">
+            <tbody className="divide-y divide-slate-200/60">
               {filteredReports.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-zinc-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                     {t.mapPage.noReportsFound}
                   </td>
                 </tr>
@@ -271,11 +251,11 @@ export const ReportsTablePage: React.FC<Props> = ({
                     <tr
                       key={report.id}
                       onClick={() => onSelectReport(report)}
-                      className="hover:bg-zinc-900/80 transition-colors cursor-pointer group"
+                      className="hover:bg-white/80 transition-colors cursor-pointer group"
                     >
                       {/* ID & Category */}
                       <td className="px-4 py-3.5">
-                        <div className="font-mono text-[11px] text-zinc-400">{report.id}</div>
+                        <div className="font-mono text-[11px] text-slate-400">{report.id}</div>
                         <span
                           className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded border mt-1 ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
                         >
@@ -286,11 +266,11 @@ export const ReportsTablePage: React.FC<Props> = ({
 
                       {/* Title & Location */}
                       <td className="px-4 py-3.5 max-w-xs">
-                        <div className="font-bold text-zinc-200 group-hover:text-emerald-400 transition-colors truncate">
+                        <div className="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors truncate">
                           {report.title}
                         </div>
-                        <div className="text-zinc-400 text-[11px] truncate flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-zinc-500 shrink-0" />
+                        <div className="text-slate-500 text-[11px] truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                           <span>{report.location_label}</span>
                         </div>
                       </td>
@@ -301,15 +281,15 @@ export const ReportsTablePage: React.FC<Props> = ({
                           <span
                             className={`font-mono text-sm font-extrabold ${
                               report.priority_score >= 85
-                                ? 'text-rose-400'
+                                ? 'text-rose-500'
                                 : report.priority_score >= 70
-                                ? 'text-amber-400'
-                                : 'text-emerald-400'
+                                ? 'text-amber-500'
+                                : 'text-emerald-500'
                             }`}
                           >
                             {report.priority_score}
                           </span>
-                          <div className="w-12 bg-zinc-800 h-1.5 rounded-full overflow-hidden hidden sm:block">
+                          <div className="w-12 bg-slate-200 h-1.5 rounded-full overflow-hidden hidden sm:block">
                             <div
                               className={`h-full rounded-full ${
                                 report.priority_score >= 85
@@ -338,10 +318,10 @@ export const ReportsTablePage: React.FC<Props> = ({
                         <select
                           value={report.status}
                           onChange={(e) => onStatusChange(report.id, e.target.value as ReportStatus)}
-                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium bg-zinc-950 focus:outline-none cursor-pointer ${staStyle.text} ${staStyle.border}`}
+                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium bg-white focus:outline-none cursor-pointer ${staStyle.text} ${staStyle.border}`}
                         >
                           {statuses.map((st) => (
-                            <option key={st} value={st} className="bg-zinc-900 text-zinc-200">
+                            <option key={st} value={st} className="bg-white text-slate-700">
                               {formatStatus(st)}
                             </option>
                           ))}
@@ -350,7 +330,7 @@ export const ReportsTablePage: React.FC<Props> = ({
 
                       {/* AI Confidence */}
                       <td className="px-4 py-3.5">
-                        <span className="font-mono text-xs font-semibold text-zinc-300">
+                        <span className="font-mono text-xs font-semibold text-slate-600">
                           {report.ai_confidence}%
                         </span>
                       </td>
@@ -362,7 +342,7 @@ export const ReportsTablePage: React.FC<Props> = ({
                             e.stopPropagation();
                             onSelectReport(report);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-zinc-800 group-hover:bg-emerald-500 group-hover:text-zinc-950 text-zinc-300 text-xs font-semibold transition-all inline-flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 group-hover:bg-emerald-500 group-hover:text-white text-slate-600 text-xs font-semibold transition-all inline-flex items-center gap-1 cursor-pointer"
                         >
                           <Eye className="w-3 h-3" />
                           <span>{t.tablePage.colActions}</span>

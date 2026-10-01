@@ -112,108 +112,110 @@ CREATE INDEX idx_reports_spatial ON reports(latitude, longitude);`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="glass-modal rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-white/60">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-950/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-950/60 border border-emerald-800/80 text-emerald-400">
-              <Database className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 border-b border-slate-200/60 bg-white/60 backdrop-blur-md relative z-10 gap-3">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-500 shadow-sm">
+              <Database className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+              <h3 className="text-lg font-extrabold text-slate-900 flex flex-wrap items-center gap-2 leading-tight">
                 Data Architecture & Schema Specification
-                <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-400 border border-emerald-800/50">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-emerald-600 shadow-sm">
                   MVP Layer: In-Memory / Target: PostgreSQL + PostGIS
                 </span>
               </h3>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-slate-500 mt-1">
                 CodeSplash '26 School Phase MVP • Synthetic Demonstration Data (Colombo Pilot Community)
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors self-end sm:self-auto"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center gap-2 px-6 py-2 border-b border-zinc-800/60 bg-zinc-900/90 text-sm">
+        <div className="flex items-center gap-2 px-6 py-2.5 border-b border-slate-200/60 bg-slate-100/60 backdrop-blur-sm text-sm shadow-inner overflow-x-auto p-1.5 mx-4 mt-4 rounded-2xl w-fit">
           <button
             onClick={() => setActiveTab('schema')}
-            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'schema'
-                ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white shadow-sm text-emerald-700 border border-emerald-200/60'
+                : 'text-slate-500 hover:bg-white/60 hover:text-slate-800'
             }`}
           >
-            <Code className="w-3.5 h-3.5" />
-            PostgreSQL DDL Schema
+            <Code className="w-4 h-4" />
+            PostgreSQL DDL
           </button>
           <button
             onClick={() => setActiveTab('architecture')}
-            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'architecture'
-                ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white shadow-sm text-emerald-700 border border-emerald-200/60'
+                : 'text-slate-500 hover:bg-white/60 hover:text-slate-800'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
+            <Layers className="w-4 h-4" />
             System Architecture
           </button>
           <button
             onClick={() => setActiveTab('ai')}
-            className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'ai'
-                ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white shadow-sm text-emerald-700 border border-emerald-200/60'
+                : 'text-slate-500 hover:bg-white/60 hover:text-slate-800'
             }`}
           >
-            <Server className="w-3.5 h-3.5" />
+            <Server className="w-4 h-4" />
             AI & Decision Pipeline
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 bg-zinc-950/40">
+        <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
           {activeTab === 'schema' && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-zinc-400">
-                  Ready-to-deploy DDL SQL script defining <code className="text-emerald-400">users</code>,{' '}
-                  <code className="text-emerald-400">reports</code>, <code className="text-emerald-400">hotspots</code>, and{' '}
-                  <code className="text-emerald-400">actions</code>.
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-600">
+                  Ready-to-deploy DDL SQL script defining <code className="text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded">users</code>,{' '}
+                  <code className="text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded">reports</code>, <code className="text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded">hotspots</code>, and{' '}
+                  <code className="text-emerald-600 font-bold bg-emerald-50 px-1 py-0.5 rounded">actions</code>.
                 </p>
                 <button
                   onClick={copyToClipboard}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-sm transition-all"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Copied to Clipboard' : 'Copy DDL'}
                 </button>
               </div>
-              <pre className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+              <pre className="p-5 rounded-2xl bg-white border border-slate-200 text-xs font-mono text-slate-700 overflow-x-auto leading-relaxed shadow-sm">
                 <code>{sqlSchema}</code>
               </pre>
             </div>
           )}
 
           {activeTab === 'architecture' && (
-            <div className="space-y-4 text-sm text-zinc-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="p-4 rounded-xl bg-zinc-900/80 border border-emerald-800/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-emerald-400 font-bold uppercase tracking-wider text-xs">
+            <div className="space-y-5 text-sm text-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="p-5 rounded-2xl glass-card relative overflow-hidden group hover:-translate-y-0.5 transition-transform">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent" />
+                  <div className="flex items-center justify-between mb-3">
+                    <strong className="text-emerald-600 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                       Current MVP Data Layer
                     </strong>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Active Demonstration
                     </span>
                   </div>
-                  <ul className="text-zinc-300 text-xs space-y-1.5 list-disc list-inside">
+                  <ul className="text-slate-600 text-xs space-y-2 list-disc list-inside marker:text-emerald-400">
                     <li>Type-safe in-memory state store running on Express/Node.js backend.</li>
                     <li>Synthetic demonstration dataset representing the fictionalized Colombo Pilot Community.</li>
                     <li>Deterministic 0–100 priority scoring engine with instant client-side updates.</li>
@@ -221,16 +223,18 @@ CREATE INDEX idx_reports_spatial ON reports(latitude, longitude);`;
                   </ul>
                 </div>
 
-                <div className="p-4 rounded-xl bg-zinc-900/80 border border-sky-800/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <strong className="text-sky-400 font-bold uppercase tracking-wider text-xs">
+                <div className="p-5 rounded-2xl glass-card relative overflow-hidden group hover:-translate-y-0.5 transition-transform">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent" />
+                  <div className="flex items-center justify-between mb-3">
+                    <strong className="text-sky-600 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-sky-500"></div>
                       Target Production Architecture
                     </strong>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">
                       Roadmap Spec
                     </span>
                   </div>
-                  <ul className="text-zinc-300 text-xs space-y-1.5 list-disc list-inside">
+                  <ul className="text-slate-600 text-xs space-y-2 list-disc list-inside marker:text-sky-400">
                     <li>Cloud-hosted PostgreSQL / Supabase with Row Level Security (RLS).</li>
                     <li>PostGIS spatial extensions (ST_DWithin, ST_ClusterDBSCAN) for live GIS indexing.</li>
                     <li>Asynchronous Gemini 2.5/Flash queue processing with human validation checkpoints.</li>
@@ -239,82 +243,95 @@ CREATE INDEX idx_reports_spatial ON reports(latitude, longitude);`;
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                <h4 className="font-bold text-zinc-100 text-xs uppercase tracking-wider text-emerald-400">
+              <div className="p-5 rounded-3xl glass-card">
+                <h4 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider mb-4 border-b border-slate-200/60 pb-2">
                   VÉQALUNE Ecosystem Architecture Mapping
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <strong className="text-emerald-400 block font-bold">VÉQALUNE CIVIC</strong>
-                    <span className="text-zinc-400 text-[11px]">Main platform hub uniting citizen intake, GIS data, and multi-factor triage.</span>
+                  <div className="glass-card rounded-xl p-3 text-slate-700 hover:bg-white/80 transition-colors">
+                    <strong className="text-emerald-600 block font-bold mb-1">VÉQALUNE CIVIC</strong>
+                    <span className="text-slate-500 text-[11px] leading-relaxed">Main platform hub uniting citizen intake, GIS data, and multi-factor triage.</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <strong className="text-sky-400 block font-bold">VÉQALUNE AI</strong>
-                    <span className="text-zinc-400 text-[11px]">Multimodal Gemini vision pipeline extracting hazard taxonomy and computing 0–100 scores.</span>
+                  <div className="glass-card rounded-xl p-3 text-slate-700 hover:bg-white/80 transition-colors">
+                    <strong className="text-sky-600 block font-bold mb-1">VÉQALUNE AI</strong>
+                    <span className="text-slate-500 text-[11px] leading-relaxed">Multimodal Gemini vision pipeline extracting hazard taxonomy and computing 0–100 scores.</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <strong className="text-purple-400 block font-bold">VÉQALUNE MAP</strong>
-                    <span className="text-zinc-400 text-[11px]">PostGIS spatial cartography clustering reports into 380m+ density hotspots.</span>
+                  <div className="glass-card rounded-xl p-3 text-slate-700 hover:bg-white/80 transition-colors">
+                    <strong className="text-purple-600 block font-bold mb-1">VÉQALUNE MAP</strong>
+                    <span className="text-slate-500 text-[11px] leading-relaxed">PostGIS spatial cartography clustering reports into 380m+ density hotspots.</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <strong className="text-amber-400 block font-bold">VÉQALUNE COMMAND</strong>
-                    <span className="text-zinc-400 text-[11px]">Operations dashboard prioritizing immediate SLA queues and field crew dispatches.</span>
+                  <div className="glass-card rounded-xl p-3 text-slate-700 hover:bg-white/80 transition-colors">
+                    <strong className="text-amber-600 block font-bold mb-1">VÉQALUNE COMMAND</strong>
+                    <span className="text-slate-500 text-[11px] leading-relaxed">Operations dashboard prioritizing immediate SLA queues and field crew dispatches.</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <strong className="text-teal-400 block font-bold">VÉQALUNE INSIGHT</strong>
-                    <span className="text-zinc-400 text-[11px]">Historical pattern correlation and systemic intervention recommendations.</span>
+                  <div className="glass-card rounded-xl p-3 text-slate-700 hover:bg-white/80 transition-colors">
+                    <strong className="text-teal-600 block font-bold mb-1">VÉQALUNE INSIGHT</strong>
+                    <span className="text-slate-500 text-[11px] leading-relaxed">Historical pattern correlation and systemic intervention recommendations.</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <strong className="text-indigo-400 block font-bold">VÉQALUNE PREDICT</strong>
-                    <span className="text-zinc-400 text-[11px]">Forward weather stress testing, storm basin surge simulation, and failure risk models.</span>
+                  <div className="glass-card rounded-xl p-3 text-slate-700 hover:bg-white/80 transition-colors">
+                    <strong className="text-indigo-600 block font-bold mb-1">VÉQALUNE PREDICT</strong>
+                    <span className="text-slate-500 text-[11px] leading-relaxed">Forward weather stress testing, storm basin surge simulation, and failure risk models.</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80">
-                <h4 className="font-semibold text-zinc-100 text-xs mb-2 uppercase tracking-wider text-zinc-400">
-                  Data Privacy & Responsible AI Framework
-                </h4>
-                <ul className="text-xs text-zinc-400 space-y-1.5 list-disc list-inside">
-                  <li>Zero storage of PII (personal identifying information) in public intelligence views.</li>
-                  <li>Images processed server-side with metadata scrubbed before storage.</li>
-                  <li>All AI recommendations are explicitly marked as <em>decision support</em> requiring human sign-off.</li>
-                </ul>
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/60 shadow-sm flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-slate-800 text-xs mb-1 uppercase tracking-wider">
+                    Data Privacy & Responsible AI Framework
+                  </h4>
+                  <ul className="text-[11px] text-slate-500 space-y-1 list-disc list-inside marker:text-emerald-300">
+                    <li>Zero storage of PII (personal identifying information) in public intelligence views.</li>
+                    <li>Images processed server-side with metadata scrubbed before storage.</li>
+                    <li>All AI recommendations are explicitly marked as <em className="text-slate-600 font-semibold">decision support</em> requiring human sign-off.</li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'ai' && (
-            <div className="space-y-4 text-xs text-zinc-300">
-              <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800">
-                <h4 className="font-bold text-zinc-100 text-sm mb-2 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  6-Stage VÉQALUNE Pipeline
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
-                    <div className="font-bold text-emerald-400">SEE</div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">Vision Ingestion</div>
+            <div className="space-y-4 text-xs text-slate-700">
+              <div className="p-6 rounded-3xl glass-card space-y-5">
+                <div className="flex items-center gap-2 border-b border-slate-200/60 pb-3">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <Server className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
-                    <div className="font-bold text-sky-400">UNDERSTAND</div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">Context & Risk</div>
+                  <h4 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
+                    6-Stage VÉQALUNE Pipeline
+                  </h4>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center text-xs">
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:-translate-y-1 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-500 font-bold mx-auto mb-2 flex items-center justify-center text-[10px]">1</div>
+                    <div className="font-bold text-emerald-600 text-[11px]">SEE</div>
+                    <div className="text-[10px] text-slate-500 mt-1">Vision Ingestion</div>
                   </div>
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
-                    <div className="font-bold text-amber-400">PRIORITIZE</div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">0-100 Score</div>
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:-translate-y-1 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-sky-50 text-sky-500 font-bold mx-auto mb-2 flex items-center justify-center text-[10px]">2</div>
+                    <div className="font-bold text-sky-600 text-[11px]">UNDERSTAND</div>
+                    <div className="text-[10px] text-slate-500 mt-1">Context & Risk</div>
                   </div>
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
-                    <div className="font-bold text-purple-400">CONNECT</div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">Spatial Cluster</div>
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:-translate-y-1 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-amber-50 text-amber-500 font-bold mx-auto mb-2 flex items-center justify-center text-[10px]">3</div>
+                    <div className="font-bold text-amber-600 text-[11px]">PRIORITIZE</div>
+                    <div className="text-[10px] text-slate-500 mt-1">0-100 Score</div>
                   </div>
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
-                    <div className="font-bold text-teal-400">RECOMMEND</div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">Action Plan</div>
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:-translate-y-1 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-purple-50 text-purple-500 font-bold mx-auto mb-2 flex items-center justify-center text-[10px]">4</div>
+                    <div className="font-bold text-purple-600 text-[11px]">CONNECT</div>
+                    <div className="text-[10px] text-slate-500 mt-1">Spatial Cluster</div>
                   </div>
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
-                    <div className="font-bold text-indigo-400">PREDICT</div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">Forecast Risk</div>
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:-translate-y-1 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-teal-50 text-teal-500 font-bold mx-auto mb-2 flex items-center justify-center text-[10px]">5</div>
+                    <div className="font-bold text-teal-600 text-[11px]">RECOMMEND</div>
+                    <div className="text-[10px] text-slate-500 mt-1">Action Plan</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm hover:-translate-y-1 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-500 font-bold mx-auto mb-2 flex items-center justify-center text-[10px]">6</div>
+                    <div className="font-bold text-indigo-600 text-[11px]">PREDICT</div>
+                    <div className="text-[10px] text-slate-500 mt-1">Forecast Risk</div>
                   </div>
                 </div>
               </div>
@@ -323,13 +340,15 @@ CREATE INDEX idx_reports_spatial ON reports(latitude, longitude);`;
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-zinc-800 bg-zinc-950/80 flex items-center justify-between text-xs text-zinc-400">
-          <div>CodeSplash '26 Hackathon Demo Mode: Persistent in-memory store + Supabase/PostgreSQL schema ready</div>
+        <div className="px-6 py-4 border-t border-slate-200/60 bg-white/80 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-3">
+          <div className="font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+            CodeSplash '26 Hackathon Demo Mode: <span className="text-emerald-600">Persistent in-memory store + Supabase/PostgreSQL schema ready</span>
+          </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
+            className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition-colors w-full sm:w-auto"
           >
-            Close
+            Close Dialog
           </button>
         </div>
       </div>

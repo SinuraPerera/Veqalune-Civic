@@ -1,23 +1,8 @@
-import React, { useState } from 'react';
-import {
-  Activity,
-  PlusCircle,
-  MapPin,
-  LayoutDashboard,
-  Sparkles,
-  Table,
-  Home,
-  Database,
-  Menu,
-  X,
-  TrendingUp,
-  BrainCircuit,
-  Compass,
-  FileText,
-  Award,
-  Globe,
-} from 'lucide-react';
-import { useLanguage, LanguageSelector } from '../context/LanguageContext';
+import React, { useEffect, useState, memo } from 'react';
+import { Home, MapPin, LayoutDashboard, Menu, X, PlusCircle, Search, FileText, BrainCircuit, Activity, User } from 'lucide-react';
+import { LanguageSelector, useLanguage } from '../context/LanguageContext';
+import { CommandPalette } from './CommandPalette';
+import { SystemHealth } from '../types';
 
 interface Props {
   currentPath: string;
@@ -25,26 +10,41 @@ interface Props {
   onOpenDbModal: () => void;
   onOpenTechnicalDossier?: (tab?: any) => void;
   activeReportsCount?: number;
+  systemHealth?: SystemHealth | null;
+  onOpenProfileModal?: () => void;
 }
 
-export const Header: React.FC<Props> = ({
+export const Header: React.FC<Props> = memo(({
   currentPath,
   onNavigate,
   onOpenDbModal,
   onOpenTechnicalDossier,
   activeReportsCount = 12,
+  systemHealth,
+  onOpenProfileModal,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { t, language } = useLanguage();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { t } = useLanguage();
 
   const navItems = [
-    { label: t.nav.civic, sub: t.nav.civicSub, path: '/', icon: Home, code: 'CIVIC' },
-    { label: t.nav.ai, sub: t.nav.aiSub, path: '/report', icon: BrainCircuit, code: 'AI' },
-    { label: t.nav.map, sub: t.nav.mapSub, path: '/map', icon: MapPin, code: 'MAP' },
-    { label: t.nav.command, sub: t.nav.commandSub, path: '/dashboard', icon: LayoutDashboard, code: 'COMMAND' },
-    { label: t.nav.insight, sub: t.nav.insightSub, path: '/reports', icon: Table, code: 'INSIGHT' },
-    { label: t.nav.predict, sub: t.nav.predictSub, path: '/insights', icon: TrendingUp, code: 'PREDICT' },
+    { label: 'Home', path: '/', icon: Home },
+    { label: 'Map', path: '/map', icon: MapPin },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'Reports', path: '/reports', icon: FileText },
+    { label: 'Insights', path: '/insights', icon: BrainCircuit },
   ];
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
 
   const handleNav = (path: string) => {
     onNavigate(path);
@@ -52,36 +52,27 @@ export const Header: React.FC<Props> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80">
+    <header className="sticky top-0 z-40 w-full glass-nav">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Brand Logo & Tagline */}
-          <div
+        <div className="flex items-center justify-between h-16">
+          {/* Brand Logo */}
+          <button
             onClick={() => handleNav('/')}
-            className="flex items-center gap-3 cursor-pointer group select-none"
+            className="flex items-center gap-3 cursor-pointer group select-none focus:outline-none focus:ring-2 focus:ring-emerald-500/50 rounded-xl p-1"
+            aria-label="Navigate to Home"
           >
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700/80 group-hover:border-emerald-500/60 transition-all shadow-inner overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/15 to-transparent"></div>
-              <img src="/logo.png" alt="VÉQALUNE CIVIC Logo" className="w-6 h-6 object-contain group-hover:scale-110 transition-transform" />
-              <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-emerald-400/60 group-hover:shadow-md group-hover:shadow-emerald-500/15 transition-all overflow-hidden">
+              <img src="/logo.png?v=2" alt="VÉQALUNE CIVIC logo" className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-wider text-zinc-100 uppercase">
-                  VÉQALUNE <span className="text-emerald-400 font-semibold">CIVIC</span>
-                </span>
-                <span className="hidden sm:inline-flex text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/50">
-                  {t.brand.ecosystem}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 font-medium tracking-tight">
-                {t.brand.tagline}
-              </p>
+              <span className="font-extrabold text-base tracking-wider text-slate-800 uppercase">
+                VÉQALUNE <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 font-semibold">CIVIC</span>
+              </span>
             </div>
-          </div>
+          </button>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 bg-zinc-900/70 p-1 rounded-xl border border-zinc-800/80">
+          <nav className="hidden md:flex items-center gap-1 glass-pill p-1.5 rounded-2xl" role="navigation" aria-label="Main navigation">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -93,93 +84,70 @@ export const Header: React.FC<Props> = ({
                 <button
                   key={item.path}
                   onClick={() => handleNav(item.path)}
-                  title={`VÉQALUNE ${item.code} — ${item.sub}`}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
                     isActive
-                      ? 'bg-zinc-800 text-emerald-300 border border-zinc-700/80 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                      ? 'bg-white/90 text-emerald-700 border border-emerald-200/80 shadow-sm shadow-emerald-100'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={`Navigate to ${item.label}`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-500' : 'text-slate-400'}`} aria-hidden="true" />
                   <span>{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* Right Utilities & Actions */}
-          <div className="hidden lg:flex items-center gap-2">
-            {/* Trilingual Language Selector */}
-            <LanguageSelector variant="pills" />
-
-            {/* Competition Proposal Dossier Button */}
-            {onOpenTechnicalDossier && (
-              <button
-                onClick={() => onOpenTechnicalDossier('story')}
-                title="View Official Technical Solution & Proposal Dossier"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border border-emerald-800/60 text-xs font-mono font-bold transition-all hover:border-emerald-500 shadow-sm cursor-pointer"
-              >
-                <Award className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{t.nav.proposalShort}</span>
-              </button>
-            )}
-
-            {/* Live Telemetry Pill */}
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-[11px] font-mono text-zinc-300">VÉQALUNE AI</span>
-              </div>
-              <span className="text-zinc-600">|</span>
-              <span className="text-[11px] font-mono text-emerald-400 font-medium">
-                {activeReportsCount} {t.nav.activeIncidents}
-              </span>
-            </div>
-
-            {/* Schema reference */}
+          {/* Right Actions */}
+          <div className="hidden lg:flex items-center gap-3">
             <button
-              onClick={onOpenDbModal}
-              title="View Supabase/PostgreSQL Data Schema & Architecture"
-              className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-emerald-400 border border-zinc-800 transition-colors cursor-pointer"
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/70 backdrop-blur-sm px-4 py-2.5 text-sm text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700 hover:bg-white/90 shadow-sm min-h-[44px]"
+              aria-label="Open command palette"
             >
-              <Database className="w-4 h-4" />
+              <Search className="h-4 w-4" aria-hidden="true" />
+              <span>Command</span>
+              <kbd className="rounded border border-slate-200 bg-slate-100/80 px-2 py-1 font-mono text-xs text-slate-400">Ctrl K</kbd>
             </button>
-
-            {/* Quick Report CTA */}
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-slate-400" title={systemHealth?.aiConfigured ? 'AI provider connected' : 'Demo intelligence mode'}>
+              <Activity className={`h-4 w-4 ${systemHealth?.aiConfigured ? 'text-emerald-500' : 'text-amber-500'}`} aria-hidden="true" />
+              <span className="hidden xl:inline">{systemHealth?.aiConfigured ? 'AI online' : 'Demo mode'}</span>
+            </div>
+            <LanguageSelector variant="pills" />
+            <button
+              onClick={onOpenProfileModal}
+              className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-100 transition-all cursor-pointer shadow-sm min-h-[44px] min-w-[44px]"
+              aria-label="View citizen profile"
+            >
+              <User className="w-5 h-5" />
+            </button>
             <button
               onClick={() => handleNav('/report')}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold text-xs shadow-md shadow-emerald-950/40 transition-all active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all active:scale-95 cursor-pointer hover:shadow-emerald-500/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 min-h-[44px]"
+              aria-label="Submit a new report"
             >
-              <PlusCircle className="w-3.5 h-3.5" />
-              {t.nav.launchAi}
+              <PlusCircle className="w-4 h-4" aria-hidden="true" />
+              Report Issue
             </button>
           </div>
 
           {/* Mobile menu trigger */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-3 lg:hidden">
             <LanguageSelector variant="compact" />
-
-            {onOpenTechnicalDossier && (
-              <button
-                onClick={() => onOpenTechnicalDossier('story')}
-                className="p-1.5 rounded-lg bg-zinc-900 text-emerald-400 border border-emerald-800/80 cursor-pointer"
-                title={t.nav.proposalShort}
-              >
-                <Award className="w-4 h-4" />
-              </button>
-            )}
             <button
               onClick={() => handleNav('/report')}
-              className="px-2.5 py-1 rounded-lg bg-emerald-600 text-zinc-950 font-bold text-xs cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm cursor-pointer shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 min-h-[44px]"
+              aria-label="Submit a new report"
             >
-              AI
+              Report
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 cursor-pointer"
+              className="p-3 rounded-xl bg-white/80 text-slate-600 border border-slate-200/80 hover:bg-white cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 min-h-[44px] min-w-[44px] shadow-sm"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -189,9 +157,9 @@ export const Header: React.FC<Props> = ({
 
       {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-zinc-800 bg-zinc-950 px-4 pt-2 pb-4 space-y-1">
-          <div className="py-2 border-b border-zinc-900 flex items-center justify-between">
-            <span className="text-xs text-zinc-400">{t.footer.language}</span>
+        <div className="lg:hidden border-b border-slate-200/70 bg-white/85 backdrop-blur-xl px-4 pt-2 pb-4 space-y-1 shadow-lg" role="navigation" aria-label="Mobile navigation">
+          <div className="py-4 border-b border-slate-200/60 flex items-center justify-between">
+            <span className="text-sm text-slate-500 font-medium">Language</span>
             <LanguageSelector variant="pills" />
           </div>
 
@@ -206,56 +174,22 @@ export const Header: React.FC<Props> = ({
               <button
                 key={item.path}
                 onClick={() => handleNav(item.path)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 min-h-[48px] ${
                   isActive
-                    ? 'bg-zinc-800 text-emerald-400 border border-zinc-700'
-                    : 'text-zinc-300 hover:bg-zinc-900'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                    : 'text-slate-600 hover:bg-slate-50/80'
                 }`}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={`Navigate to ${item.label}`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon className="w-4 h-4 text-emerald-400" />
-                  <span className="font-bold">VÉQALUNE {item.label}</span>
-                </div>
-                <span className="text-xs text-zinc-500 font-mono">{item.sub}</span>
+                <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-500' : 'text-slate-400'}`} aria-hidden="true" />
+                <span className="font-bold">{item.label}</span>
               </button>
             );
           })}
-
-          <div className="pt-3 border-t border-zinc-800 space-y-2">
-            {onOpenTechnicalDossier && (
-              <button
-                onClick={() => {
-                  onOpenTechnicalDossier('story');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-800/80 text-xs font-bold"
-              >
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-emerald-400" />
-                  <span>{t.nav.proposalDossier}</span>
-                </div>
-                <span className="font-mono text-[10px]">Open →</span>
-              </button>
-            )}
-
-            <div className="flex items-center justify-between pt-1">
-              <button
-                onClick={() => {
-                  onOpenDbModal();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-2 text-xs text-zinc-400 hover:text-emerald-400 cursor-pointer"
-              >
-                <Database className="w-4 h-4" />
-                {t.common.viewDataModel}
-              </button>
-              <span className="text-xs font-mono text-emerald-400">
-                {activeReportsCount} {t.nav.activeIncidents}
-              </span>
-            </div>
-          </div>
         </div>
       )}
+      <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNav} />
     </header>
   );
-};
+});
