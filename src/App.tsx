@@ -248,6 +248,7 @@ export default function App() {
                 <InsightsPage
                   hotspots={hotspots}
                   scenarios={scenarios}
+                  reports={reports}
                   onNavigate={handleNavigate}
                   onHotspotsUpdated={(updatedHs) => setHotspots(updatedHs)}
                 />

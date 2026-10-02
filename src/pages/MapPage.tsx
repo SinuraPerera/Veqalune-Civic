@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import {
   Search,
   Layers,
@@ -393,7 +392,7 @@ export const MapPage: React.FC<Props> = ({
               }`}
               aria-pressed={sidebarTab === 'incidents'}
             >
-              {t.mapPage.incidentsTab}
+              {t.mapPage.tabIncidents}
             </button>
             <button
               onClick={() => setSidebarTab('hotspots')}
@@ -404,7 +403,7 @@ export const MapPage: React.FC<Props> = ({
               }`}
               aria-pressed={sidebarTab === 'hotspots'}
             >
-              {t.mapPage.hotspotsTab}
+              {t.mapPage.tabHotspots}
             </button>
           </div>
 
