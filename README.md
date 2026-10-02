@@ -360,7 +360,7 @@ Or use **VS Code Live Server**.
 
 The repository includes `vercel.json` and generates static `/api/reports` and `/api/insights` JSON snapshots during each Vercel build. This avoids runtime data-module loading issues in serverless functions and ensures seeded sample reports and metrics are visible after deployment. `/api/health` is served by a lightweight serverless function.
 
-The Vercel deployment currently serves read-only sample data; report writes, analysis, and scans still require a persistent backend/API deployment. Configure a database and connect it before using this deployment for real citizen submissions. `GEMINI_API_KEY` is used by the standalone Express server, not by the static Vercel data snapshots.
+The Vercel deployment serves read-only sample data and provides deterministic report analysis. Report writes and hotspot scans still require a persistent backend/API deployment for durable behavior. Configure a database before using this deployment for real citizen submissions. `GEMINI_API_KEY` is used by the standalone Express server; Vercel demo analysis currently uses the deterministic fallback.
 
 ### Optional Python AI integration
 
