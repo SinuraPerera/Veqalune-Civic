@@ -358,9 +358,9 @@ Or use **VS Code Live Server**.
 
 ### Deploy to Vercel
 
-The repository includes `vercel.json` and serverless handlers under `api/`. Vercel builds the Vite app into `dist/` and serves `/api/*` from the serverless API function, so reports and insights are available in a deployment as well as locally. The API starts with the bundled sample dataset (`dataMode: "sample-demo"`) and uses its deterministic analysis fallback.
+The repository includes `vercel.json` and generates static `/api/reports` and `/api/insights` JSON snapshots during each Vercel build. This avoids runtime data-module loading issues in serverless functions and ensures seeded sample reports and metrics are visible after deployment. `/api/health` is served by a lightweight serverless function.
 
-Vercel functions are stateless: reports created or updated by the demo API are temporary and can reset on a cold start or be isolated between instances. Configure a persistent database and connect it to the API before using this deployment for real citizen submissions. The current Vercel function uses deterministic demo analysis; `GEMINI_API_KEY` is currently used by the standalone Express server, not by the Vercel serverless handler.
+The Vercel deployment currently serves read-only sample data; report writes, analysis, and scans still require a persistent backend/API deployment. Configure a database and connect it before using this deployment for real citizen submissions. `GEMINI_API_KEY` is used by the standalone Express server, not by the static Vercel data snapshots.
 
 ### Optional Python AI integration
 
