@@ -5,6 +5,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/reports", "destination": "/api/reports.json" },
-    { "source": "/api/insights", "destination": "/api/insights.json" }
+    { "source": "/api/insights", "destination": "/api/insights.json" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
