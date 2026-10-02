@@ -9,6 +9,10 @@ import {
   SystemHealth,
 } from '../types';
 
+function usesVercelStaticApi(): boolean {
+  return typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app');
+}
+
 export async function fetchSystemHealth(): Promise<SystemHealth> {
   const res = await fetch('/api/health');
   if (!res.ok) throw new Error('Failed to fetch system health');
@@ -27,10 +31,24 @@ export async function fetchReports(filters?: {
   if (filters?.status) params.append('status', filters.status);
   if (filters?.search) params.append('search', filters.search);
 
-  const res = await fetch(`/api/reports?${params.toString()}`);
+  const staticApi = usesVercelStaticApi();
+  const query = params.toString();
+  const endpoint = staticApi
+    ? '/api/reports.json'
+    : `/api/reports${query ? `?${query}` : ''}`;
+  const res = await fetch(endpoint);
   if (!res.ok) throw new Error('Failed to fetch reports');
   const data = await res.json();
-  return data.reports || [];
+  const reports: Report[] = data.reports || [];
+  if (!staticApi) return reports;
+
+  return reports.filter((report) =>
+    (!filters?.category || filters.category === 'ALL' || report.category === filters.category) &&
+    (!filters?.severity || filters.severity === 'ALL' || report.severity === filters.severity) &&
+    (!filters?.status || filters.status === 'ALL' || report.status === filters.status) &&
+    (!filters?.search || [report.title, report.description, report.location_label, report.id, ...report.hazard_tags]
+      .some((value) => value.toLowerCase().includes(filters.search!.toLowerCase())))
+  );
 }
 
 export async function fetchHotspots(): Promise<HotspotCluster[]> {
@@ -169,7 +187,8 @@ export async function fetchCommunityInsights(): Promise<{
   predictiveScenarios: PredictiveScenario[];
   topAiInsight: string;
 }> {
-  const res = await fetch('/api/insights');
+  const endpoint = usesVercelStaticApi() ? '/api/insights.json' : '/api/insights';
+  const res = await fetch(endpoint);
   if (!res.ok) throw new Error('Failed to fetch insights');
   return await res.json();
 }
